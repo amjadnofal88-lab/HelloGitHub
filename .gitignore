@@ -69,3 +69,6 @@ local_settings.py
 # hellogithub
 *.db
 content*.md
+
+# account statement generated files
+script/account_statement/statement_*.html
