@@ -12,7 +12,6 @@
 """
 import html as html_module
 import os
-import sys
 import logging
 import datetime
 import argparse
