@@ -36,7 +36,7 @@
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img/master/hellogithub/17/50264296.png' style="max-width:80%; max-height=80%;"></img></p>
 
 ### Go 项目
-4、[casbin](https://hellogithub.com/periodical/statistics/click?target=https://github.com/casbin/casbin)：访问控制开源库，支持 ACL/RBAC/ABAC 等访问控制模型，支持 MySQL/NoSQL 等存储方式
+4、[casbin](https://hellogithub.com/periodical/statistics/click?target=https://github.com/apache/casbin)：访问控制开源库，支持 ACL/RBAC/ABAC 等访问控制模型，支持 MySQL/NoSQL 等存储方式
 
 
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img/master/hellogithub/17/87617508.png' style="max-width:80%; max-height=80%;"></img></p>
@@ -194,6 +194,13 @@
           <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/qiniu.jpg" width="60px"><br>
           <sub>七牛云</sub><br>
           <sub>百万 Token 免费体验</sub>
+        </a>
+      </th>
+      <th align="center" style="width: 80px;">
+        <a href="https://ofox.ai/zh?utm_source=github&utm_medium=hellogithub&utm_campaign=sponsor">
+          <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/0foxai.png" width="60px"><br>
+          <sub>OfoxAI</sub><br>
+          <sub>100+ 模型官方直连不掉线</sub>
         </a>
       </th>
     </tr>

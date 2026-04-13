@@ -182,7 +182,7 @@ for future in as_completed(futures):
     })
 ```
 
-24、[UavNetSim-v1](https://hellogithub.com/en/periodical/statistics/click?target=https://github.com/Zihao-Felix-Zhou/UavNetSim-v1)：Drone Communication Network Simulation Platform.This is a Python (SimPy)-based drone communication network simulation platform designed specifically for organizing drone cluster communication. It provides multiple levels of the drone network (such as network layer, MAC layer, physical layer), as well as comprehensive modeling of drone mobility and energy models, and is suitable for protocol design, performance evaluation and visual analysis of drone networks.Shared by [@凝望，划过星空](https://hellogithub.com/en/user/yc7sS80jimthluU)
+24、[UavNetSim](https://hellogithub.com/en/periodical/statistics/click?target=https://github.com/Zihao-Felix-Zhou/UavNetSim)：Drone Communication Network Simulation Platform.This is a Python (SimPy)-based drone communication network simulation platform designed specifically for organizing drone cluster communication. It provides multiple levels of the drone network (such as network layer, MAC layer, physical layer), as well as comprehensive modeling of drone mobility and energy models, and is suitable for protocol design, performance evaluation and visual analysis of drone networks.Shared by [@凝望，划过星空](https://hellogithub.com/en/user/yc7sS80jimthluU)
 
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img4/master/hellogithub/112/955363828.png' style="max-width:80%; max-height=80%;"></img></p>
 
@@ -311,6 +311,13 @@ self.add(nn)
           <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/qiniu.jpg" width="60px"><br>
           <sub>七牛云</sub><br>
           <sub>百万 Token 免费体验</sub>
+        </a>
+      </th>
+      <th align="center" style="width: 80px;">
+        <a href="https://ofox.ai/zh?utm_source=github&utm_medium=hellogithub&utm_campaign=sponsor">
+          <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/0foxai.png" width="60px"><br>
+          <sub>OfoxAI</sub><br>
+          <sub>100+ 模型官方直连不掉线</sub>
         </a>
       </th>
     </tr>

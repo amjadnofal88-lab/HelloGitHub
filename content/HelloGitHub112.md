@@ -189,7 +189,7 @@ for future in as_completed(futures):
     })
 ```
 
-24、[UavNetSim-v1](https://hellogithub.com/periodical/statistics/click?target=https://github.com/Zihao-Felix-Zhou/UavNetSim-v1)：无人机通信网络仿真平台。这是一款基于 Python（SimPy）的无人机通信网络仿真平台，专为组建无人机集群通信而设计。它提供无人机网络的多个层级（如网络层、MAC 层、物理层），以及无人机移动性和能量模型的全面建模，适用于无人机网络的协议设计、性能评估和可视化分析。来自 [@凝望，划过星空](https://hellogithub.com/user/yc7sS80jimthluU) 的分享
+24、[UavNetSim](https://hellogithub.com/periodical/statistics/click?target=https://github.com/Zihao-Felix-Zhou/UavNetSim)：无人机通信网络仿真平台。这是一款基于 Python（SimPy）的无人机通信网络仿真平台，专为组建无人机集群通信而设计。它提供无人机网络的多个层级（如网络层、MAC 层、物理层），以及无人机移动性和能量模型的全面建模，适用于无人机网络的协议设计、性能评估和可视化分析。来自 [@凝望，划过星空](https://hellogithub.com/user/yc7sS80jimthluU) 的分享
 
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img4/master/hellogithub/112/955363828.png' style="max-width:80%; max-height=80%;"></img></p>
 
@@ -321,6 +321,13 @@ self.add(nn)
           <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/qiniu.jpg" width="60px"><br>
           <sub>七牛云</sub><br>
           <sub>百万 Token 免费体验</sub>
+        </a>
+      </th>
+      <th align="center" style="width: 80px;">
+        <a href="https://ofox.ai/zh?utm_source=github&utm_medium=hellogithub&utm_campaign=sponsor">
+          <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/0foxai.png" width="60px"><br>
+          <sub>OfoxAI</sub><br>
+          <sub>100+ 模型官方直连不掉线</sub>
         </a>
       </th>
     </tr>

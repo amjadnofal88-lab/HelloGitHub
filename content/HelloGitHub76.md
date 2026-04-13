@@ -274,7 +274,7 @@ for link in browser.links():
 
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img3/master/hellogithub/76/8357227.png' style="max-width:80%; max-height=80%;"></img></p>
 
-30、[ydata-profiling](https://hellogithub.com/periodical/statistics/click?target=https://github.com/ydataai/ydata-profiling)：能够自动生成 pandas DataFrame 分析报告的库。虽然 pandas 自带的 df.describe 函数可以方便地生成统计报告，但是信息较少。该项目能够自动生成一份 df 多维度的 HTML 分析报告，包含列的类型、缺失情况、数值分布、行重复率、占用内存大小等信息，有助于更好地了解数据情况。
+30、[ydata-profiling](https://hellogithub.com/periodical/statistics/click?target=https://github.com/Data-Centric-AI-Community/ydata-profiling)：能够自动生成 pandas DataFrame 分析报告的库。虽然 pandas 自带的 df.describe 函数可以方便地生成统计报告，但是信息较少。该项目能够自动生成一份 df 多维度的 HTML 分析报告，包含列的类型、缺失情况、数值分布、行重复率、占用内存大小等信息，有助于更好地了解数据情况。
 
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img3/master/hellogithub/76/49346299.png' style="max-width:80%; max-height=80%;"></img></p>
 
@@ -385,6 +385,13 @@ tagger.predict(sentence)
           <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/qiniu.jpg" width="60px"><br>
           <sub>七牛云</sub><br>
           <sub>百万 Token 免费体验</sub>
+        </a>
+      </th>
+      <th align="center" style="width: 80px;">
+        <a href="https://ofox.ai/zh?utm_source=github&utm_medium=hellogithub&utm_campaign=sponsor">
+          <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/0foxai.png" width="60px"><br>
+          <sub>OfoxAI</sub><br>
+          <sub>100+ 模型官方直连不掉线</sub>
         </a>
       </th>
     </tr>
