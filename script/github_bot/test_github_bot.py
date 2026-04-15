@@ -98,7 +98,8 @@ class TestCheckCondition(unittest.TestCase):
     def _make_event(self, event_type, action, repo_name, hours_ago=1):
         """Helper to build a synthetic event."""
         create_time = datetime.datetime.utcnow() - datetime.timedelta(hours=hours_ago)
-        # Subtract 8 hours because check_condition adds 8 hours to created_at
+        # Subtract 8 hours to compensate for the +8h offset applied in check_condition,
+        # so that (parsed_utc + 8h) equals utcnow() - hours_ago.
         create_time_utc = create_time - datetime.timedelta(hours=8)
         return {
             'type': event_type,
@@ -158,6 +159,7 @@ class TestAnalyze(unittest.TestCase):
 
     def _make_event(self, event_type, action, repo_name, hours_ago=1):
         create_time = datetime.datetime.utcnow() - datetime.timedelta(hours=hours_ago)
+        # Subtract 8 hours to compensate for the +8h offset applied in check_condition.
         create_time_utc = create_time - datetime.timedelta(hours=8)
         return {
             'type': event_type,

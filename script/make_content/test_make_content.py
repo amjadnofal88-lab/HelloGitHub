@@ -40,7 +40,7 @@ class TestCheckPath(unittest.TestCase):
         with tempfile.NamedTemporaryFile() as tmp:
             self.assertTrue(mc_module.check_path(tmp.name))
 
-    def test_nonexistent_file_returns_false(self, ):
+    def test_nonexistent_file_returns_false(self):
         self.assertFalse(mc_module.check_path('/tmp/nonexistent_file_xyz.txt'))
 
 
