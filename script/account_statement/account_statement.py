@@ -162,7 +162,7 @@ def build_repos_rows(repos):
     """Build HTML table rows for repositories."""
     rows = []
     for repo in repos:
-        updated = repo.get('updated_at', '')[:10]
+        updated = (repo.get('updated_at') or '')[:10]
         row = (
             '<tr>'
             '<td><a href="{html_url}">{name}</a></td>'
@@ -173,8 +173,8 @@ def build_repos_rows(repos):
             '<td>{updated}</td>'
             '</tr>'
         ).format(
-            html_url=html_module.escape(repo.get('html_url', '')),
-            name=html_module.escape(repo.get('name', '')),
+            html_url=html_module.escape(repo.get('html_url') or ''),
+            name=html_module.escape(repo.get('name') or ''),
             description=html_module.escape(repo.get('description') or ''),
             language=html_module.escape(repo.get('language') or ''),
             stars=repo.get('stargazers_count', 0),
