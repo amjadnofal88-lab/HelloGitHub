@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIG – Claims Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: #003087;
+            color: #ffffff;
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .navbar .brand { font-size: 22px; font-weight: bold; letter-spacing: 2px; }
+        .navbar .brand span { font-size: 13px; font-weight: normal; margin-left: 10px; color: #a8c3f0; }
+        .navbar .nav-links { display: flex; gap: 24px; list-style: none; }
+        .navbar .nav-links a {
+            color: #d0dff8; text-decoration: none; font-size: 14px;
+            padding: 4px 0; border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .navbar .nav-links a:hover, .navbar .nav-links a.active { color: #fff; border-bottom-color: #fff; }
+        .navbar .user-info { font-size: 13px; color: #a8c3f0; }
+
+        /* Layout */
+        .main-content { max-width: 1200px; margin: 32px auto; padding: 0 24px; }
+        .page-title { font-size: 22px; font-weight: bold; color: #1a2e5e; margin-bottom: 24px; }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 20px; flex-wrap: wrap;
+        }
+        .toolbar input[type="text"] {
+            padding: 8px 12px; border: 1px solid #d1d5db;
+            border-radius: 4px; font-size: 14px; width: 260px;
+            outline: none; transition: border-color 0.2s;
+        }
+        .toolbar input[type="text"]:focus { border-color: #003087; }
+        .toolbar select {
+            padding: 8px 12px; border: 1px solid #d1d5db;
+            border-radius: 4px; font-size: 14px; outline: none;
+            background: #fff; cursor: pointer;
+        }
+
+        .btn {
+            padding: 8px 16px; border-radius: 4px; font-size: 13px;
+            font-weight: 600; border: none; cursor: pointer;
+            text-decoration: none; display: inline-block;
+            transition: background-color 0.2s;
+        }
+        .btn-primary { background-color: #003087; color: #fff; }
+        .btn-primary:hover { background-color: #002070; }
+        .btn-secondary { background-color: #6b7280; color: #fff; }
+        .btn-secondary:hover { background-color: #4b5563; }
+        .btn-success { background-color: #16a34a; color: #fff; }
+        .btn-success:hover { background-color: #15803d; }
+        .btn-danger { background-color: #dc2626; color: #fff; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+        /* Card */
+        .section {
+            background: #fff; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 28px; overflow: hidden;
+        }
+        .section-header {
+            padding: 16px 24px; border-bottom: 1px solid #e5e7eb;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .section-header h2 { font-size: 16px; font-weight: 700; color: #1a2e5e; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 12px; font-weight: 700; color: #6b7280;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tbody td { padding: 13px 16px; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background-color: #f8fafc; }
+
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-pending  { background: #fef9c3; color: #b45309; }
+        .badge-approved { background: #dbeafe; color: #1d4ed8; }
+        .badge-paid     { background: #dcfce7; color: #16a34a; }
+        .badge-rejected { background: #fee2e2; color: #dc2626; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4); z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #fff; border-radius: 8px; width: 100%; max-width: 560px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); overflow: hidden;
+        }
+        .modal-header {
+            background: #003087; color: #fff; padding: 16px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .modal-header h3 { font-size: 16px; font-weight: 700; }
+        .modal-close { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; line-height: 1; }
+        .modal-body { padding: 24px; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 9px 12px; border: 1px solid #d1d5db;
+            border-radius: 4px; font-size: 14px; outline: none;
+            transition: border-color 0.2s; font-family: inherit;
+        }
+        .form-group textarea { resize: vertical; min-height: 72px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #003087; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px; }
+        .error-text { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; }
+
+        /* Detail panel */
+        .detail-label { font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+        .detail-value { font-size: 14px; color: #111827; margin-top: 2px; margin-bottom: 12px; }
+
+        /* Pagination */
+        .pagination { padding: 12px 24px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b7280; }
+        .pagination button {
+            padding: 5px 12px; border: 1px solid #d1d5db; border-radius: 4px;
+            background: #fff; cursor: pointer; font-size: 13px; transition: background-color 0.2s;
+        }
+        .pagination button:hover:not(:disabled) { background: #eef2ff; border-color: #003087; color: #003087; }
+        .pagination button:disabled { opacity: 0.4; cursor: default; }
+
+        .footer { text-align: center; font-size: 12px; color: #9ca3af; padding: 24px 0 16px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">AIG <span>Insurance Portal</span></div>
+        <ul class="nav-links">
+            <li><a href="../../GUI/FrmInsurance.html">Dashboard</a></li>
+            <li><a href="../../Policy/GUI/FrmPolicy.html">Policies</a></li>
+            <li><a href="FrmClaims.html" class="active">Claims</a></li>
+        </ul>
+        <div class="user-info">Welcome, Agent</div>
+    </nav>
+
+    <div class="main-content">
+        <div class="page-title">Claims Management</div>
+
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="Search by claim no. or holder…" oninput="applyFilters()" />
+            <select id="statusFilter" onchange="applyFilters()">
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Paid">Paid</option>
+                <option value="Rejected">Rejected</option>
+            </select>
+            <button class="btn btn-primary" onclick="openNewClaimModal()">+ File a Claim</button>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>Claims</h2>
+                <span id="recordCount" style="font-size:13px;color:#6b7280;"></span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Claim No.</th>
+                        <th>Policyholder</th>
+                        <th>Policy No.</th>
+                        <th>Date Filed</th>
+                        <th>Claim Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="claimsTableBody"></tbody>
+            </table>
+            <div class="pagination">
+                <button id="prevBtn" onclick="changePage(-1)">&#8592; Prev</button>
+                <span id="pageInfo"></span>
+                <button id="nextBtn" onclick="changePage(1)">Next &#8594;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">&copy; AIG &mdash; Insurance Portal</div>
+
+    <!-- New Claim Modal -->
+    <div class="modal-overlay" id="claimModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="claimModalTitle">
+            <div class="modal-header">
+                <h3 id="claimModalTitle">File a New Claim</h3>
+                <button class="modal-close" onclick="closeNewClaimModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="claimHolder">Policyholder Name *</label>
+                        <input type="text" id="claimHolder" placeholder="Full name" />
+                        <div class="error-text" id="claimHolderError">Please enter the policyholder name.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="claimPolicyNo">Policy No. *</label>
+                        <input type="text" id="claimPolicyNo" placeholder="e.g. POL-2024-0001" />
+                        <div class="error-text" id="claimPolicyNoError">Please enter the policy number.</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="claimDate">Date of Loss *</label>
+                        <input type="date" id="claimDate" />
+                        <div class="error-text" id="claimDateError">Please enter the date of loss.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="claimAmount">Claim Amount (USD) *</label>
+                        <input type="number" id="claimAmount" placeholder="0.00" min="0" step="0.01" />
+                        <div class="error-text" id="claimAmountError">Please enter a valid claim amount.</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="claimDescription">Description *</label>
+                        <textarea id="claimDescription" placeholder="Briefly describe the loss or incident…"></textarea>
+                        <div class="error-text" id="claimDescriptionError">Please provide a description.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeNewClaimModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveClaim()">Submit Claim</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Claim Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+            <div class="modal-header">
+                <h3 id="detailModalTitle">Claim Details</h3>
+                <button class="modal-close" onclick="closeDetailModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body" id="detailModalBody"></div>
+            <div class="modal-footer" id="detailModalFooter"></div>
+        </div>
+    </div>
+
+    <script>
+        var claims = [
+            { no: 'CLM-2024-0101', holder: 'John Smith',     policy: 'POL-2024-0001', filed: '2024-05-10', amount: 4500,  status: 'Pending',  desc: 'Rear-end collision on Highway 101.' },
+            { no: 'CLM-2024-0102', holder: 'Mary Johnson',   policy: 'POL-2024-0002', filed: '2024-05-18', amount: 12300, status: 'Approved', desc: 'Water damage from burst pipe in kitchen.' },
+            { no: 'CLM-2024-0103', holder: 'Linda Brown',    policy: 'POL-2023-0088', filed: '2024-04-02', amount: 800,   status: 'Pending',  desc: 'Emergency room visit for fracture.' },
+            { no: 'CLM-2024-0104', holder: 'Michael Wilson', policy: 'POL-2024-0004', filed: '2024-05-22', amount: 22000, status: 'Pending',  desc: 'Warehouse equipment damage due to fire.' },
+            { no: 'CLM-2024-0105', holder: 'Sarah Miller',   policy: 'POL-2024-0005', filed: '2024-03-15', amount: 3100,  status: 'Paid',     desc: 'Windshield replacement and minor bodywork.' },
+            { no: 'CLM-2024-0106', holder: 'David Lee',      policy: 'POL-2024-0006', filed: '2024-04-28', amount: 6700,  status: 'Rejected', desc: 'Pre-existing damage claim; not covered.' }
+        ];
+
+        var filtered = claims.slice();
+        var currentPage = 1;
+        var pageSize = 5;
+        var nextClaimNum = 107;
+        var detailIdx = -1;
+
+        var statusBadge = { Pending: 'badge-pending', Approved: 'badge-approved', Paid: 'badge-paid', Rejected: 'badge-rejected' };
+
+        function escapeHtml(text) {
+            var d = document.createElement('div');
+            d.appendChild(document.createTextNode(String(text)));
+            return d.innerHTML;
+        }
+
+        function formatCurrency(n) {
+            return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0 });
+        }
+
+        function applyFilters() {
+            var search = document.getElementById('searchInput').value.trim().toLowerCase();
+            var status = document.getElementById('statusFilter').value;
+            filtered = claims.filter(function(c) {
+                var matchSearch = !search || c.no.toLowerCase().includes(search) || c.holder.toLowerCase().includes(search);
+                var matchStatus = !status || c.status === status;
+                return matchSearch && matchStatus;
+            });
+            currentPage = 1;
+            renderTable();
+        }
+
+        function renderTable() {
+            var start = (currentPage - 1) * pageSize;
+            var page  = filtered.slice(start, start + pageSize);
+            var tbody = document.getElementById('claimsTableBody');
+            var rows  = '';
+
+            if (page.length === 0) {
+                rows = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#9ca3af;">No claims found.</td></tr>';
+            } else {
+                for (var i = 0; i < page.length; i++) {
+                    var c = page[i];
+                    var cls = statusBadge[c.status] || '';
+                    rows += '<tr>' +
+                        '<td>' + escapeHtml(c.no) + '</td>' +
+                        '<td>' + escapeHtml(c.holder) + '</td>' +
+                        '<td>' + escapeHtml(c.policy) + '</td>' +
+                        '<td>' + escapeHtml(c.filed) + '</td>' +
+                        '<td>' + formatCurrency(c.amount) + '</td>' +
+                        '<td><span class="badge ' + cls + '">' + escapeHtml(c.status) + '</span></td>' +
+                        '<td><button class="btn btn-secondary btn-sm" onclick="openDetailModal(' + (start + i) + ')">Details</button></td>' +
+                        '</tr>';
+                }
+            }
+            tbody.innerHTML = rows;
+
+            var total = filtered.length;
+            var pages = Math.ceil(total / pageSize) || 1;
+            document.getElementById('recordCount').textContent = total + ' record' + (total !== 1 ? 's' : '');
+            document.getElementById('pageInfo').textContent = 'Page ' + currentPage + ' of ' + pages;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= pages;
+        }
+
+        function changePage(dir) {
+            var pages = Math.ceil(filtered.length / pageSize) || 1;
+            currentPage = Math.max(1, Math.min(pages, currentPage + dir));
+            renderTable();
+        }
+
+        /* --- New Claim Modal --- */
+        function openNewClaimModal() {
+            ['claimHolder','claimPolicyNo','claimAmount','claimDescription'].forEach(function(id){ document.getElementById(id).value = ''; });
+            document.getElementById('claimDate').value = '';
+            ['claimHolderError','claimPolicyNoError','claimDateError','claimAmountError','claimDescriptionError'].forEach(function(id){
+                document.getElementById(id).style.display = 'none';
+            });
+            document.getElementById('claimModal').classList.add('open');
+            document.getElementById('claimHolder').focus();
+        }
+
+        function closeNewClaimModal() {
+            document.getElementById('claimModal').classList.remove('open');
+        }
+
+        function saveClaim() {
+            var holder = document.getElementById('claimHolder').value.trim();
+            var policy = document.getElementById('claimPolicyNo').value.trim();
+            var date   = document.getElementById('claimDate').value;
+            var amount = parseFloat(document.getElementById('claimAmount').value);
+            var desc   = document.getElementById('claimDescription').value.trim();
+            var valid  = true;
+
+            function showErr(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
+            showErr('claimHolderError',      !holder);  if (!holder)          valid = false;
+            showErr('claimPolicyNoError',    !policy);  if (!policy)          valid = false;
+            showErr('claimDateError',        !date);    if (!date)            valid = false;
+            showErr('claimAmountError',      isNaN(amount) || amount < 0);
+            if (isNaN(amount) || amount < 0) valid = false;
+            showErr('claimDescriptionError', !desc);    if (!desc)            valid = false;
+
+            if (!valid) return;
+
+            var seq = String(nextClaimNum++).padStart(4, '0');
+            var year = new Date(date).getFullYear() || new Date().getFullYear();
+            claims.unshift({ no: 'CLM-' + year + '-' + seq, holder: holder, policy: policy, filed: date, amount: amount, status: 'Pending', desc: desc });
+            closeNewClaimModal();
+            applyFilters();
+        }
+
+        /* --- Detail Modal --- */
+        function openDetailModal(idx) {
+            detailIdx = idx;
+            var c = filtered[idx];
+            if (!c) return;
+            var cls = statusBadge[c.status] || '';
+            document.getElementById('detailModalBody').innerHTML =
+                '<div class="detail-label">Claim No.</div><div class="detail-value">' + escapeHtml(c.no) + '</div>' +
+                '<div class="detail-label">Policyholder</div><div class="detail-value">' + escapeHtml(c.holder) + '</div>' +
+                '<div class="detail-label">Policy No.</div><div class="detail-value">' + escapeHtml(c.policy) + '</div>' +
+                '<div class="detail-label">Date Filed</div><div class="detail-value">' + escapeHtml(c.filed) + '</div>' +
+                '<div class="detail-label">Claim Amount</div><div class="detail-value">' + formatCurrency(c.amount) + '</div>' +
+                '<div class="detail-label">Status</div><div class="detail-value"><span class="badge ' + cls + '">' + escapeHtml(c.status) + '</span></div>' +
+                '<div class="detail-label">Description</div><div class="detail-value">' + escapeHtml(c.desc) + '</div>';
+
+            var footer = '<button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>';
+            if (c.status === 'Pending') {
+                footer += ' <button class="btn btn-success" onclick="updateStatus(' + idx + ',\'Approved\')">Approve</button>' +
+                          ' <button class="btn btn-danger"  onclick="updateStatus(' + idx + ',\'Rejected\')">Reject</button>';
+            } else if (c.status === 'Approved') {
+                footer += ' <button class="btn btn-success" onclick="updateStatus(' + idx + ',\'Paid\')">Mark as Paid</button>';
+            }
+            document.getElementById('detailModalFooter').innerHTML = footer;
+            document.getElementById('detailModal').classList.add('open');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.remove('open');
+            detailIdx = -1;
+        }
+
+        function updateStatus(idx, newStatus) {
+            var c = filtered[idx];
+            if (!c) return;
+            for (var i = 0; i < claims.length; i++) {
+                if (claims[i].no === c.no) { claims[i].status = newStatus; break; }
+            }
+            closeDetailModal();
+            applyFilters();
+        }
+
+        /* Close on overlay click or Escape */
+        ['claimModal','detailModal'].forEach(function(id) {
+            document.getElementById(id).addEventListener('click', function(e) {
+                if (e.target === this) { this.classList.remove('open'); }
+            });
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('claimModal').classList.remove('open');
+                document.getElementById('detailModal').classList.remove('open');
+            }
+        });
+
+        renderTable();
+    </script>
+</body>
+</html>

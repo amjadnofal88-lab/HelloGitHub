@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIG – Policy Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: #003087;
+            color: #ffffff;
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .navbar .brand { font-size: 22px; font-weight: bold; letter-spacing: 2px; }
+        .navbar .brand span { font-size: 13px; font-weight: normal; margin-left: 10px; color: #a8c3f0; }
+        .navbar .nav-links { display: flex; gap: 24px; list-style: none; }
+        .navbar .nav-links a {
+            color: #d0dff8; text-decoration: none; font-size: 14px;
+            padding: 4px 0; border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .navbar .nav-links a:hover, .navbar .nav-links a.active { color: #fff; border-bottom-color: #fff; }
+        .navbar .user-info { font-size: 13px; color: #a8c3f0; }
+
+        /* Layout */
+        .main-content { max-width: 1200px; margin: 32px auto; padding: 0 24px; }
+        .page-title { font-size: 22px; font-weight: bold; color: #1a2e5e; margin-bottom: 24px; }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .toolbar input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 260px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .toolbar input[type="text"]:focus { border-color: #003087; }
+        .toolbar select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 8px 16px; border-radius: 4px; font-size: 13px;
+            font-weight: 600; border: none; cursor: pointer;
+            text-decoration: none; display: inline-block;
+            transition: background-color 0.2s;
+        }
+        .btn-primary   { background-color: #003087; color: #fff; }
+        .btn-primary:hover { background-color: #002070; }
+        .btn-secondary { background-color: #6b7280; color: #fff; }
+        .btn-secondary:hover { background-color: #4b5563; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+        /* Card */
+        .section {
+            background: #fff; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 28px; overflow: hidden;
+        }
+        .section-header {
+            padding: 16px 24px; border-bottom: 1px solid #e5e7eb;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .section-header h2 { font-size: 16px; font-weight: 700; color: #1a2e5e; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 12px; font-weight: 700; color: #6b7280;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tbody td { padding: 13px 16px; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background-color: #f8fafc; }
+
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-active   { background: #dcfce7; color: #16a34a; }
+        .badge-pending  { background: #fef9c3; color: #b45309; }
+        .badge-expired  { background: #fee2e2; color: #dc2626; }
+
+        /* Modal overlay */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4); z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #fff; border-radius: 8px; width: 100%; max-width: 540px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); overflow: hidden;
+        }
+        .modal-header {
+            background: #003087; color: #fff; padding: 16px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .modal-header h3 { font-size: 16px; font-weight: 700; }
+        .modal-close {
+            background: none; border: none; color: #fff;
+            font-size: 20px; cursor: pointer; line-height: 1;
+        }
+        .modal-body { padding: 24px; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 9px 12px; border: 1px solid #d1d5db;
+            border-radius: 4px; font-size: 14px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus { border-color: #003087; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px; }
+
+        .error-text { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; }
+
+        /* Pagination */
+        .pagination { padding: 12px 24px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b7280; }
+        .pagination button {
+            padding: 5px 12px; border: 1px solid #d1d5db; border-radius: 4px;
+            background: #fff; cursor: pointer; font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        .pagination button:hover:not(:disabled) { background: #eef2ff; border-color: #003087; color: #003087; }
+        .pagination button:disabled { opacity: 0.4; cursor: default; }
+
+        .footer { text-align: center; font-size: 12px; color: #9ca3af; padding: 24px 0 16px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">AIG <span>Insurance Portal</span></div>
+        <ul class="nav-links">
+            <li><a href="../../GUI/FrmInsurance.html">Dashboard</a></li>
+            <li><a href="FrmPolicy.html" class="active">Policies</a></li>
+            <li><a href="../../Claims/GUI/FrmClaims.html">Claims</a></li>
+        </ul>
+        <div class="user-info">Welcome, Agent</div>
+    </nav>
+
+    <div class="main-content">
+        <div class="page-title">Policy Management</div>
+
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="Search by policy no. or holder…" oninput="applyFilters()" />
+            <select id="typeFilter" onchange="applyFilters()">
+                <option value="">All Types</option>
+                <option value="Auto">Auto</option>
+                <option value="Home">Home</option>
+                <option value="Life">Life</option>
+                <option value="Health">Health</option>
+                <option value="Commercial">Commercial</option>
+            </select>
+            <select id="statusFilter" onchange="applyFilters()">
+                <option value="">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Pending">Pending</option>
+                <option value="Expired">Expired</option>
+            </select>
+            <button class="btn btn-primary" onclick="openModal()">+ New Policy</button>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>Policies</h2>
+                <span id="recordCount" style="font-size:13px;color:#6b7280;"></span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Policy No.</th>
+                        <th>Policyholder</th>
+                        <th>Type</th>
+                        <th>Effective Date</th>
+                        <th>Expiry Date</th>
+                        <th>Premium</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="policyTableBody"></tbody>
+            </table>
+            <div class="pagination">
+                <button id="prevBtn" onclick="changePage(-1)">&#8592; Prev</button>
+                <span id="pageInfo"></span>
+                <button id="nextBtn" onclick="changePage(1)">Next &#8594;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">&copy; AIG &mdash; Insurance Portal</div>
+
+    <!-- New Policy Modal -->
+    <div class="modal-overlay" id="policyModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <div class="modal-header">
+                <h3 id="modalTitle">New Policy</h3>
+                <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="holderName">Policyholder Name *</label>
+                        <input type="text" id="holderName" placeholder="Full name" />
+                        <div class="error-text" id="holderNameError">Please enter the policyholder name.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="policyType">Policy Type *</label>
+                        <select id="policyType">
+                            <option value="">Select type…</option>
+                            <option value="Auto">Auto</option>
+                            <option value="Home">Home</option>
+                            <option value="Life">Life</option>
+                            <option value="Health">Health</option>
+                            <option value="Commercial">Commercial</option>
+                        </select>
+                        <div class="error-text" id="policyTypeError">Please select a policy type.</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="effectiveDate">Effective Date *</label>
+                        <input type="date" id="effectiveDate" />
+                        <div class="error-text" id="effectiveDateError">Please enter the effective date.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="expiryDate">Expiry Date *</label>
+                        <input type="date" id="expiryDate" />
+                        <div class="error-text" id="expiryDateError">Please enter the expiry date.</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="premium">Annual Premium (USD) *</label>
+                        <input type="number" id="premium" placeholder="0.00" min="0" step="0.01" />
+                        <div class="error-text" id="premiumError">Please enter a valid premium amount.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="policyStatus">Status</label>
+                        <select id="policyStatus">
+                            <option value="Active">Active</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="savePolicy()">Save Policy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var policies = [
+            { no: 'POL-2024-0001', holder: 'John Smith',      type: 'Auto',       effective: '2024-01-15', expiry: '2025-01-14', premium: 1200,  status: 'Active'  },
+            { no: 'POL-2024-0002', holder: 'Mary Johnson',    type: 'Home',       effective: '2024-02-01', expiry: '2025-01-31', premium: 2400,  status: 'Active'  },
+            { no: 'POL-2024-0003', holder: 'Robert Davis',    type: 'Life',       effective: '2024-03-10', expiry: '2034-03-09', premium: 5000,  status: 'Active'  },
+            { no: 'POL-2023-0088', holder: 'Linda Brown',     type: 'Health',     effective: '2023-07-01', expiry: '2024-06-30', premium: 3600,  status: 'Expired' },
+            { no: 'POL-2024-0004', holder: 'Michael Wilson',  type: 'Commercial', effective: '2024-04-01', expiry: '2025-03-31', premium: 8500,  status: 'Pending' },
+            { no: 'POL-2024-0005', holder: 'Sarah Miller',    type: 'Auto',       effective: '2024-05-01', expiry: '2025-04-30', premium: 980,   status: 'Active'  },
+            { no: 'POL-2024-0006', holder: 'David Lee',       type: 'Home',       effective: '2024-06-15', expiry: '2025-06-14', premium: 1750,  status: 'Active'  },
+            { no: 'POL-2024-0007', holder: 'Patricia Harris', type: 'Health',     effective: '2024-01-01', expiry: '2024-12-31', premium: 4200,  status: 'Active'  }
+        ];
+
+        var filtered = policies.slice();
+        var currentPage = 1;
+        var pageSize = 5;
+        var nextPolicyNum = 8;
+
+        var statusBadge = { Active: 'badge-active', Pending: 'badge-pending', Expired: 'badge-expired' };
+
+        function escapeHtml(text) {
+            var d = document.createElement('div');
+            d.appendChild(document.createTextNode(String(text)));
+            return d.innerHTML;
+        }
+
+        function formatCurrency(n) {
+            return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0 });
+        }
+
+        function applyFilters() {
+            var search = document.getElementById('searchInput').value.trim().toLowerCase();
+            var type   = document.getElementById('typeFilter').value;
+            var status = document.getElementById('statusFilter').value;
+
+            filtered = policies.filter(function(p) {
+                var matchSearch = !search || p.no.toLowerCase().includes(search) || p.holder.toLowerCase().includes(search);
+                var matchType   = !type   || p.type === type;
+                var matchStatus = !status || p.status === status;
+                return matchSearch && matchType && matchStatus;
+            });
+            currentPage = 1;
+            renderTable();
+        }
+
+        function renderTable() {
+            var start = (currentPage - 1) * pageSize;
+            var page  = filtered.slice(start, start + pageSize);
+            var tbody = document.getElementById('policyTableBody');
+            var rows  = '';
+
+            if (page.length === 0) {
+                rows = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#9ca3af;">No policies found.</td></tr>';
+            } else {
+                for (var i = 0; i < page.length; i++) {
+                    var p = page[i];
+                    var cls = statusBadge[p.status] || '';
+                    rows += '<tr>' +
+                        '<td>' + escapeHtml(p.no) + '</td>' +
+                        '<td>' + escapeHtml(p.holder) + '</td>' +
+                        '<td>' + escapeHtml(p.type) + '</td>' +
+                        '<td>' + escapeHtml(p.effective) + '</td>' +
+                        '<td>' + escapeHtml(p.expiry) + '</td>' +
+                        '<td>' + formatCurrency(p.premium) + '</td>' +
+                        '<td><span class="badge ' + cls + '">' + escapeHtml(p.status) + '</span></td>' +
+                        '<td><button class="btn btn-secondary btn-sm" onclick="viewPolicy(' + (start + i) + ')">View</button></td>' +
+                        '</tr>';
+                }
+            }
+            tbody.innerHTML = rows;
+
+            var total = filtered.length;
+            var pages = Math.ceil(total / pageSize) || 1;
+            document.getElementById('recordCount').textContent = total + ' record' + (total !== 1 ? 's' : '');
+            document.getElementById('pageInfo').textContent = 'Page ' + currentPage + ' of ' + pages;
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= pages;
+        }
+
+        function changePage(dir) {
+            var pages = Math.ceil(filtered.length / pageSize) || 1;
+            currentPage = Math.max(1, Math.min(pages, currentPage + dir));
+            renderTable();
+        }
+
+        function viewPolicy(idx) {
+            var p = filtered[idx];
+            if (!p) return;
+            alert('Policy: ' + p.no + '\nHolder: ' + p.holder + '\nType: ' + p.type +
+                  '\nEffective: ' + p.effective + '\nExpiry: ' + p.expiry +
+                  '\nPremium: ' + formatCurrency(p.premium) + '\nStatus: ' + p.status);
+        }
+
+        function openModal() {
+            document.getElementById('holderName').value  = '';
+            document.getElementById('policyType').value  = '';
+            document.getElementById('effectiveDate').value = '';
+            document.getElementById('expiryDate').value  = '';
+            document.getElementById('premium').value     = '';
+            document.getElementById('policyStatus').value = 'Active';
+            ['holderNameError','policyTypeError','effectiveDateError','expiryDateError','premiumError'].forEach(function(id){
+                document.getElementById(id).style.display = 'none';
+            });
+            document.getElementById('policyModal').classList.add('open');
+            document.getElementById('holderName').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('policyModal').classList.remove('open');
+        }
+
+        function savePolicy() {
+            var holder    = document.getElementById('holderName').value.trim();
+            var type      = document.getElementById('policyType').value;
+            var effective = document.getElementById('effectiveDate').value;
+            var expiry    = document.getElementById('expiryDate').value;
+            var premium   = parseFloat(document.getElementById('premium').value);
+            var status    = document.getElementById('policyStatus').value;
+            var valid     = true;
+
+            function showErr(id, show) {
+                document.getElementById(id).style.display = show ? 'block' : 'none';
+            }
+
+            showErr('holderNameError',    !holder);    if (!holder)         valid = false;
+            showErr('policyTypeError',    !type);      if (!type)           valid = false;
+            showErr('effectiveDateError', !effective); if (!effective)      valid = false;
+            showErr('expiryDateError',    !expiry);    if (!expiry)         valid = false;
+            showErr('premiumError',       isNaN(premium) || premium < 0);
+            if (isNaN(premium) || premium < 0) valid = false;
+
+            if (!valid) return;
+
+            var seq = String(nextPolicyNum++).padStart(4, '0');
+            var year = new Date(effective).getFullYear() || new Date().getFullYear();
+            var newPolicy = {
+                no: 'POL-' + year + '-' + seq,
+                holder: holder, type: type,
+                effective: effective, expiry: expiry,
+                premium: premium, status: status
+            };
+            policies.unshift(newPolicy);
+            closeModal();
+            applyFilters();
+        }
+
+        // Close modal on overlay click
+        document.getElementById('policyModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        renderTable();
+    </script>
+</body>
+</html>
