@@ -194,6 +194,49 @@ class TestReports(BaseTest):
         rows = reports.top_claims_report(5)
         self.assertGreater(len(rows), 0)
 
+    def test_production_report_all(self):
+        import reports
+        self._seed()
+        r = reports.production_report()
+        self.assertGreaterEqual(r["totals"]["total_policies"], 1)
+        self.assertGreaterEqual(r["totals"]["total_premiums"], 0)
+        self.assertGreater(len(r["policies"]), 0)
+
+    def test_production_report_filtered(self):
+        import reports
+        self._seed()
+        r = reports.production_report(customer_name="Report User")
+        self.assertGreaterEqual(r["totals"]["total_policies"], 1)
+        for pol in r["policies"]:
+            self.assertIn("report user", pol["customer_name"].lower())
+
+    def test_production_report_no_match(self):
+        import reports
+        self._seed()
+        r = reports.production_report(customer_name="nobody xyz")
+        self.assertEqual(r["totals"]["total_policies"], 0)
+        self.assertEqual(r["policies"], [])
+
+    def test_loss_ratio_report(self):
+        import reports
+        import claims as clm
+        self._seed()
+        # approve the seeded claim so alternative ratio is non-zero
+        conn_claims = clm.list_claims()
+        if conn_claims:
+            clm.update_claim(conn_claims[0]["id"], status="approved",
+                             amount_approved=conn_claims[0]["amount_claimed"])
+        r = reports.loss_ratio_report()
+        self.assertIn("total_premiums", r)
+        self.assertIn("loss_ratio", r)
+        self.assertIn("alternative_real_loss_ratio", r)
+        self.assertIn("by_policy_type", r)
+        if r["total_premiums"]:
+            self.assertIsNotNone(r["loss_ratio"])
+            self.assertIsNotNone(r["alternative_real_loss_ratio"])
+            if r["loss_ratio"] is not None and r["alternative_real_loss_ratio"] is not None:
+                self.assertGreaterEqual(r["loss_ratio"], r["alternative_real_loss_ratio"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

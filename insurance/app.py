@@ -309,6 +309,8 @@ def menu_reports():
         print("  1. Summary report")
         print("  2. Policies by type")
         print("  3. Top claims")
+        print("  4. Production report")
+        print("  5. Loss ratio report")
         print("  0. Back")
         choice = _input("Choice: ")
 
@@ -334,6 +336,35 @@ def menu_reports():
             rows = rep_ops.top_claims_report(limit)
             _print_table(rows, ["claim_number", "customer_name", "policy_type",
                                 "amount_claimed", "amount_approved", "status"])
+
+        elif choice == "4":
+            name_filter = _input("Filter by customer name (leave blank for all): ") or None
+            r = rep_ops.production_report(customer_name=name_filter)
+            t = r["totals"]
+            print(f"\n  Total policies     : {t['total_policies']}")
+            print(f"  Active policies    : {t['active_policies']}")
+            print(f"  Total coverage     : ${t['total_coverage']:,.2f}")
+            print(f"  Total premiums     : ${t['total_premiums']:,.2f}")
+            print()
+            _print_table(r["policies"], ["customer_name", "policy_number", "policy_type",
+                                         "coverage_amount", "premium_amount",
+                                         "start_date", "end_date", "status"])
+
+        elif choice == "5":
+            r = rep_ops.loss_ratio_report()
+
+            def _pct(v):
+                return f"{v:.2f}%" if v is not None else "N/A"
+
+            print(f"\n  Total premiums (active policies) : ${r['total_premiums']:,.2f}")
+            print(f"  Total claimed                    : ${r['total_claimed']:,.2f}")
+            print(f"  Total approved (paid)            : ${r['total_approved']:,.2f}")
+            print(f"  Standard loss ratio              : {_pct(r['loss_ratio'])}")
+            print(f"  Alternative real loss ratio      : {_pct(r['alternative_real_loss_ratio'])}")
+            print("\n  By policy type:")
+            _print_table(r["by_policy_type"],
+                         ["policy_type", "total_premiums", "total_claimed",
+                          "total_approved", "loss_ratio", "alternative_real_loss_ratio"])
 
         elif choice == "0":
             break
