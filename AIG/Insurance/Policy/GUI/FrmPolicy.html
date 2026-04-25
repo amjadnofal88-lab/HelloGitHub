@@ -251,13 +251,13 @@
                     <div class="form-group">
                         <label for="effectiveDate">Effective Date *</label>
                         <input type="date" id="effectiveDate" />
-                        <div class="error-text" id="effectiveDateError">Please enter the effective date.</div>
+                        <div class="error-text" id="effectiveDateError" aria-live="polite">Please enter the effective date.</div>
                         <div class="error-text" id="effectiveDateRangeError" aria-live="polite">Effective date can be at most one year ago.</div>
                     </div>
                     <div class="form-group">
                         <label for="expiryDate">Expiry Date *</label>
                         <input type="date" id="expiryDate" />
-                        <div class="error-text" id="expiryDateError">Please enter the expiry date.</div>
+                        <div class="error-text" id="expiryDateError" aria-live="polite">Please enter the expiry date.</div>
                         <div class="error-text" id="expiryDateRangeError" aria-live="polite">Insurance is renewable yearly. Expiry must be after effective date and within one year.</div>
                     </div>
                 </div>
@@ -402,23 +402,35 @@
             var status    = document.getElementById('policyStatus').value;
             var valid     = true;
 
+            function parseDateInput(value) {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+                var parts = value.split('-');
+                var y = parseInt(parts[0], 10);
+                var m = parseInt(parts[1], 10) - 1;
+                var d = parseInt(parts[2], 10);
+                var parsed = new Date(y, m, d);
+                if (parsed.getFullYear() !== y || parsed.getMonth() !== m || parsed.getDate() !== d) return null;
+                parsed.setHours(0, 0, 0, 0);
+                return parsed;
+            }
+
             function showErr(id, show) {
                 document.getElementById(id).style.display = show ? 'block' : 'none';
             }
 
+            var effectiveDateObj = effective ? parseDateInput(effective) : null;
+            var expiryDateObj = expiry ? parseDateInput(expiry) : null;
+
             showErr('holderNameError',    !holder);    if (!holder)         valid = false;
             showErr('policyTypeError',    !type);      if (!type)           valid = false;
-            showErr('effectiveDateError', !effective); if (!effective)      valid = false;
-            showErr('expiryDateError',    !expiry);    if (!expiry)         valid = false;
+            showErr('effectiveDateError', !effective || !effectiveDateObj); if (!effective || !effectiveDateObj) valid = false;
+            showErr('expiryDateError',    !expiry || !expiryDateObj);       if (!expiry || !expiryDateObj)       valid = false;
             showErr('premiumError',       isNaN(premium) || premium < 0);
             if (isNaN(premium) || premium < 0) valid = false;
 
             var oneYearAgo = new Date();
-            oneYearAgo.setHours(0, 0, 0, 0);
             oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-            var effectiveDateObj = effective ? new Date(effective + 'T00:00:00') : null;
-            var expiryDateObj = expiry ? new Date(expiry + 'T00:00:00') : null;
+            oneYearAgo.setHours(0, 0, 0, 0);
             var maxRenewalDate = null;
 
             if (effectiveDateObj) {
