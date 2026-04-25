@@ -252,13 +252,13 @@
                         <label for="effectiveDate">Effective Date *</label>
                         <input type="date" id="effectiveDate" />
                         <div class="error-text" id="effectiveDateError">Please enter the effective date.</div>
-                        <div class="error-text" id="effectiveDateRangeError">Effective date can be at most one year ago.</div>
+                        <div class="error-text" id="effectiveDateRangeError" aria-live="polite">Effective date can be at most one year ago.</div>
                     </div>
                     <div class="form-group">
                         <label for="expiryDate">Expiry Date *</label>
                         <input type="date" id="expiryDate" />
                         <div class="error-text" id="expiryDateError">Please enter the expiry date.</div>
-                        <div class="error-text" id="expiryDateRangeError">Insurance is renewable yearly. Expiry must be after effective date and within one year.</div>
+                        <div class="error-text" id="expiryDateRangeError" aria-live="polite">Insurance is renewable yearly. Expiry must be after effective date and within one year.</div>
                     </div>
                 </div>
                 <div class="form-row">
