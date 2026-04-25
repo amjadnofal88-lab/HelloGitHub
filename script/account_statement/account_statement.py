@@ -31,7 +31,7 @@ GITHUB_API = 'https://api.github.com'
 
 # Optional GitHub Personal Access Token read from the environment variable
 # GITHUB_TOKEN.  Setting this increases the API rate limit from 60 to
-# 5 000 requests per hour.
+# 5000 requests per hour.
 _GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', '')
 
 # Timeout (in seconds) for every outbound HTTP request
@@ -129,7 +129,7 @@ def get_user_profile(username):
         logger.error('Rate limit exceeded while fetching profile for %s (HTTP %s)',
                      username, response.status_code)
         print('ERROR: GitHub API rate limit exceeded. Set the GITHUB_TOKEN environment '
-              'variable to increase the limit from 60 to 5 000 requests per hour.')
+              'variable to increase the limit from 60 to 5000 requests per hour.')
         return None
     else:
         logger.error('Failed to fetch profile for %s: %s', username, response.status_code)
@@ -148,6 +148,8 @@ def get_user_repos(username):
         if response.status_code in (403, 429):
             logger.error('Rate limit exceeded while fetching repos for %s (HTTP %s)',
                          username, response.status_code)
+            print('ERROR: GitHub API rate limit exceeded. Set the GITHUB_TOKEN environment '
+                  'variable to increase the limit from 60 to 5000 requests per hour.')
             break
         if response.status_code != 200:
             logger.error('Failed to fetch repos for %s (page %d): %s',
