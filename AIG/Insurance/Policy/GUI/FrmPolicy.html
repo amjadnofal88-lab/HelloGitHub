@@ -252,11 +252,13 @@
                         <label for="effectiveDate">Effective Date *</label>
                         <input type="date" id="effectiveDate" />
                         <div class="error-text" id="effectiveDateError">Please enter the effective date.</div>
+                        <div class="error-text" id="effectiveDateRangeError">Effective date can be at most one year ago.</div>
                     </div>
                     <div class="form-group">
                         <label for="expiryDate">Expiry Date *</label>
                         <input type="date" id="expiryDate" />
                         <div class="error-text" id="expiryDateError">Please enter the expiry date.</div>
+                        <div class="error-text" id="expiryDateRangeError">Insurance is renewable yearly. Expiry must be after effective date and within one year.</div>
                     </div>
                 </div>
                 <div class="form-row">
@@ -380,7 +382,7 @@
             document.getElementById('expiryDate').value  = '';
             document.getElementById('premium').value     = '';
             document.getElementById('policyStatus').value = 'Active';
-            ['holderNameError','policyTypeError','effectiveDateError','expiryDateError','premiumError'].forEach(function(id){
+            ['holderNameError','policyTypeError','effectiveDateError','effectiveDateRangeError','expiryDateError','expiryDateRangeError','premiumError'].forEach(function(id){
                 document.getElementById(id).style.display = 'none';
             });
             document.getElementById('policyModal').classList.add('open');
@@ -410,6 +412,28 @@
             showErr('expiryDateError',    !expiry);    if (!expiry)         valid = false;
             showErr('premiumError',       isNaN(premium) || premium < 0);
             if (isNaN(premium) || premium < 0) valid = false;
+
+            var oneYearAgo = new Date();
+            oneYearAgo.setHours(0, 0, 0, 0);
+            oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+            var effectiveDateObj = effective ? new Date(effective + 'T00:00:00') : null;
+            var expiryDateObj = expiry ? new Date(expiry + 'T00:00:00') : null;
+            var maxRenewalDate = null;
+
+            if (effectiveDateObj) {
+                maxRenewalDate = new Date(effectiveDateObj);
+                maxRenewalDate.setFullYear(maxRenewalDate.getFullYear() + 1);
+            }
+
+            var invalidEffectiveRange = !!effectiveDateObj && effectiveDateObj < oneYearAgo;
+            showErr('effectiveDateRangeError', invalidEffectiveRange);
+            if (invalidEffectiveRange) valid = false;
+
+            var invalidRenewalRange = !!effectiveDateObj && !!expiryDateObj &&
+                (expiryDateObj <= effectiveDateObj || expiryDateObj > maxRenewalDate);
+            showErr('expiryDateRangeError', invalidRenewalRange);
+            if (invalidRenewalRange) valid = false;
 
             if (!valid) return;
 
