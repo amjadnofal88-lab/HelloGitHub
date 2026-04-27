@@ -62,26 +62,44 @@ class TestCustomer(BaseTest):
 
 class TestPremium(BaseTest):
     def test_life_young(self):
-        from premium import calculate_premium
-        p = calculate_premium("life", 100_000, "2000-01-01")
+        from premium import calculate_premium, build_policy_data, default_ai_recommendation
+        data = build_policy_data("life", 100_000)
+        ai = default_ai_recommendation("life", "2000-01-01")
+        p = calculate_premium(data, ai)
         self.assertGreater(p, 0)
 
     def test_health_older(self):
-        from premium import calculate_premium
-        p_young = calculate_premium("health", 50_000, "2000-01-01")
-        p_old = calculate_premium("health", 50_000, "1955-01-01")
+        from premium import calculate_premium, build_policy_data, default_ai_recommendation
+        data = build_policy_data("health", 50_000)
+        ai_young = default_ai_recommendation("health", "2000-01-01")
+        ai_old = default_ai_recommendation("health", "1955-01-01")
+        p_young = calculate_premium(data, ai_young)
+        p_old = calculate_premium(data, ai_old)
         self.assertGreater(p_old, p_young)
 
     def test_unknown_type(self):
-        from premium import calculate_premium
+        from premium import build_policy_data
         with self.assertRaises(ValueError):
-            calculate_premium("spaceship", 100_000)
+            build_policy_data("spaceship", 100_000)
 
     def test_duration_scaling(self):
-        from premium import calculate_premium
-        p12 = calculate_premium("auto", 20_000, duration_months=12)
-        p6 = calculate_premium("auto", 20_000, duration_months=6)
+        from premium import calculate_premium, build_policy_data
+        ai = {"recommended_multiplier": 1.0}
+        data12 = build_policy_data("auto", 20_000, duration_months=12)
+        data6 = build_policy_data("auto", 20_000, duration_months=6)
+        p12 = calculate_premium(data12, ai)
+        p6 = calculate_premium(data6, ai)
         self.assertAlmostEqual(p12, p6 * 2, places=1)
+
+    def test_custom_ai_multiplier(self):
+        from premium import calculate_premium, build_policy_data
+        data = build_policy_data("auto", 100_000, duration_months=12)
+        ai_low = {"recommended_multiplier": 0.8}
+        ai_high = {"recommended_multiplier": 1.5}
+        # auto base_rate=1.50, coverage_factor=1.0, duration_factor=1.0
+        self.assertAlmostEqual(calculate_premium(data, ai_low), round(1.50 * 0.8, 2))
+        self.assertAlmostEqual(calculate_premium(data, ai_high), round(1.50 * 1.5, 2))
+        self.assertLess(calculate_premium(data, ai_low), calculate_premium(data, ai_high))
 
 
 class TestPolicy(BaseTest):

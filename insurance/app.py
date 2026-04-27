@@ -160,9 +160,9 @@ def menu_policies():
                 months = 12
 
             try:
-                calculated = prem_ops.calculate_premium(
-                    ptype, coverage, c.get("date_of_birth"), months
-                )
+                policy_data = prem_ops.build_policy_data(ptype, coverage, months)
+                ai = prem_ops.default_ai_recommendation(ptype, c.get("date_of_birth"))
+                calculated = prem_ops.calculate_premium(policy_data, ai)
                 print(f"  Calculated premium: ${calculated:.2f}")
                 use_calc = _input("Use calculated premium? (Y/n): ").lower()
                 if use_calc != "n":
@@ -293,7 +293,9 @@ def menu_premium():
     dob = _input("Customer date of birth (YYYY-MM-DD, optional): ") or None
     months = int(_input("Policy duration in months [12]: ") or 12)
     try:
-        result = prem_ops.calculate_premium(ptype, coverage, dob, months)
+        policy_data = prem_ops.build_policy_data(ptype, coverage, months)
+        ai = prem_ops.default_ai_recommendation(ptype, dob)
+        result = prem_ops.calculate_premium(policy_data, ai)
         print(f"\n  Estimated premium: ${result:.2f} for {months} months")
     except ValueError as e:
         print(f"✗ {e}")
