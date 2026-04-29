@@ -164,6 +164,57 @@ class TestClaims(BaseTest):
         self.assertIsNone(ops.get_claim(clm_id))
 
 
+class TestTransfers(BaseTest):
+    def _make_policy(self):
+        import customer as cust
+        import policy as pol
+        cid = cust.create_customer("Transfer User", "transfer@example.com")
+        pid, _ = pol.create_policy(cid, "auto", 50_000, 750.0,
+                                   "2024-01-01", "2025-01-01")
+        return pid
+
+    def test_insert_with_idempotency_key(self):
+        import sqlite3
+        pid = self._make_policy()
+        with database.get_connection() as conn:
+            conn.execute(
+                "INSERT INTO transfers (policy_id, amount, idempotency_key) VALUES (?, ?, ?)",
+                (pid, 500.0, "key-001"),
+            )
+            row = conn.execute(
+                "SELECT * FROM transfers WHERE idempotency_key = ?", ("key-001",)
+            ).fetchone()
+        self.assertIsNotNone(row)
+        self.assertEqual(row["amount"], 500.0)
+
+    def test_idempotency_key_unique_constraint(self):
+        import sqlite3
+        pid = self._make_policy()
+        with database.get_connection() as conn:
+            conn.execute(
+                "INSERT INTO transfers (policy_id, amount, idempotency_key) VALUES (?, ?, ?)",
+                (pid, 500.0, "key-dup"),
+            )
+        with self.assertRaises(sqlite3.IntegrityError):
+            with database.get_connection() as conn:
+                conn.execute(
+                    "INSERT INTO transfers (policy_id, amount, idempotency_key) VALUES (?, ?, ?)",
+                    (pid, 200.0, "key-dup"),
+                )
+
+    def test_idempotency_key_nullable(self):
+        pid = self._make_policy()
+        with database.get_connection() as conn:
+            conn.execute(
+                "INSERT INTO transfers (policy_id, amount) VALUES (?, ?)",
+                (pid, 100.0),
+            )
+            row = conn.execute(
+                "SELECT idempotency_key FROM transfers WHERE policy_id = ?", (pid,)
+            ).fetchone()
+        self.assertIsNone(row["idempotency_key"])
+
+
 class TestReports(BaseTest):
     def _seed(self):
         import customer as cust
