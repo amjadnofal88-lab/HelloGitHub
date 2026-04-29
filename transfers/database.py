@@ -1,5 +1,6 @@
 """Database initialisation and connection helper for the Transfers service."""
 
+import json
 import sqlite3
 import os
 
@@ -25,4 +26,23 @@ def init_db() -> None:
                 created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                action     TEXT    NOT NULL,
+                user_id    TEXT,
+                payload    TEXT,
+                created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        conn.commit()
+
+
+def insert_audit_log(action: str, payload: dict | None = None, user_id: str | None = None) -> None:
+    """Record an audit log entry."""
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO audit_logs (action, user_id, payload) VALUES (?, ?, ?)",
+            (action, user_id, json.dumps(payload) if payload is not None else None),
+        )
         conn.commit()

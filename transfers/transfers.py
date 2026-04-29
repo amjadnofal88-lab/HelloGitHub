@@ -2,7 +2,7 @@
 
 import sqlite3
 import uuid
-from database import get_connection
+from database import get_connection, insert_audit_log
 
 
 def _generate_reference() -> str:
@@ -28,7 +28,17 @@ def create_transfer(
                 )
                 conn.commit()
                 transfer_id = cur.lastrowid
-            return get_transfer(transfer_id)
+            transfer = get_transfer(transfer_id)
+            insert_audit_log(
+                action="transfer_created",
+                payload={
+                    "reference": transfer["reference"],
+                    "beneficiary_name": beneficiary_name,
+                    "account_number": account_number,
+                    "amount": amount,
+                },
+            )
+            return transfer
         except sqlite3.IntegrityError:
             continue
     raise RuntimeError("Failed to generate a unique transfer reference after multiple attempts.")

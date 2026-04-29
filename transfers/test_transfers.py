@@ -21,9 +21,10 @@ import app as transfers_app
 
 class TransfersAPITestCase(unittest.TestCase):
     def setUp(self):
-        # Drop and recreate the transfers table before each test
+        # Drop and recreate the tables before each test
         with database.get_connection() as conn:
             conn.execute("DROP TABLE IF EXISTS transfers")
+            conn.execute("DROP TABLE IF EXISTS audit_logs")
             conn.commit()
         database.init_db()
         self.client = transfers_app.app.test_client()
@@ -181,6 +182,38 @@ class TransfersAPITestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         transfers = resp.get_json()
         self.assertGreaterEqual(len(transfers), 1)
+
+    # ------------------------------------------------------------------
+    # Audit log
+    # ------------------------------------------------------------------
+
+    def test_audit_log_written_on_create(self):
+        payload = {
+            "beneficiary_name": "Ivan",
+            "account_number": "ACC-009",
+            "amount": 500,
+        }
+        self.client.post(
+            "/transfers",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        with database.get_connection() as conn:
+            rows = conn.execute("SELECT * FROM audit_logs").fetchall()
+        self.assertEqual(len(rows), 1)
+        log = dict(rows[0])
+        self.assertEqual(log["action"], "transfer_created")
+        self.assertIn("reference", json.loads(log["payload"]))
+
+    def test_audit_log_not_written_on_validation_failure(self):
+        self.client.post(
+            "/transfers",
+            data=json.dumps({"beneficiary_name": "Judy", "account_number": "ACC-010"}),
+            content_type="application/json",
+        )
+        with database.get_connection() as conn:
+            rows = conn.execute("SELECT * FROM audit_logs").fetchall()
+        self.assertEqual(len(rows), 0)
 
 
 if __name__ == "__main__":
