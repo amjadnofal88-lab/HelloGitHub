@@ -1,12 +1,14 @@
 """Tests for the WhatsApp notification feature."""
 
-import json
-import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+from whatsapp.router import get_whatsapp_service, router
+from whatsapp.services import WhatsAppService
 
 
 # ---------------------------------------------------------------------------
@@ -20,7 +22,7 @@ MOCK_API_RESPONSE = {
 }
 
 
-def _make_mock_response(status_code: int = 200, json_body: dict = None) -> MagicMock:
+def _make_mock_http_client(status_code: int = 200, json_body: dict = None) -> AsyncMock:
     mock_resp = MagicMock(spec=httpx.Response)
     mock_resp.status_code = status_code
     mock_resp.json.return_value = json_body or MOCK_API_RESPONSE
@@ -30,7 +32,18 @@ def _make_mock_response(status_code: int = 200, json_body: dict = None) -> Magic
         )
     else:
         mock_resp.raise_for_status.return_value = None
-    return mock_resp
+
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    mock_client.post.return_value = mock_resp
+    return mock_client
+
+
+def _make_app(mock_client: AsyncMock) -> FastAPI:
+    """Return a FastAPI app with the WhatsApp router and a mock HTTP client."""
+    app = FastAPI()
+    app.include_router(router)
+    app.dependency_overrides[get_whatsapp_service] = lambda: WhatsAppService(mock_client)
+    return app
 
 
 # ---------------------------------------------------------------------------
@@ -40,21 +53,11 @@ def _make_mock_response(status_code: int = 200, json_body: dict = None) -> Magic
 @pytest.mark.asyncio
 async def test_send_message_success():
     """Service returns the API response dict on success."""
-    import importlib
-    import whatsapp.services as svc_module
-
-    mock_response = _make_mock_response()
-    mock_client = AsyncMock()
-    mock_client.post.return_value = mock_response
+    mock_client = _make_mock_http_client()
 
     with patch("whatsapp.services.WHATSAPP_ACCESS_TOKEN", "test-token"), \
-         patch("whatsapp.services.WHATSAPP_API_BASE_URL", "https://example.com/messages"), \
-         patch("httpx.AsyncClient") as mock_async_client:
-        mock_async_client.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_async_client.return_value.__aexit__ = AsyncMock(return_value=False)
-
-        from whatsapp.services import WhatsAppService
-        svc = WhatsAppService()
+         patch("whatsapp.services.WHATSAPP_API_BASE_URL", "https://example.com/messages"):
+        svc = WhatsAppService(mock_client)
         result = await svc.send_message("+15550001234", "Hello!")
 
     assert result == MOCK_API_RESPONSE
@@ -69,18 +72,11 @@ async def test_send_message_success():
 @pytest.mark.asyncio
 async def test_send_message_sets_auth_header():
     """Service sends the Bearer token in the Authorization header."""
-    mock_response = _make_mock_response()
-    mock_client = AsyncMock()
-    mock_client.post.return_value = mock_response
+    mock_client = _make_mock_http_client()
 
     with patch("whatsapp.services.WHATSAPP_ACCESS_TOKEN", "my-secret-token"), \
-         patch("whatsapp.services.WHATSAPP_API_BASE_URL", "https://example.com/messages"), \
-         patch("httpx.AsyncClient") as mock_async_client:
-        mock_async_client.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_async_client.return_value.__aexit__ = AsyncMock(return_value=False)
-
-        from whatsapp.services import WhatsAppService
-        await WhatsAppService().send_message("+15550001234", "Hi")
+         patch("whatsapp.services.WHATSAPP_API_BASE_URL", "https://example.com/messages"):
+        await WhatsAppService(mock_client).send_message("+15550001234", "Hi")
 
     headers = mock_client.post.call_args.kwargs["headers"]
     assert headers["Authorization"] == "Bearer my-secret-token"
@@ -90,58 +86,37 @@ async def test_send_message_sets_auth_header():
 @pytest.mark.asyncio
 async def test_send_message_raises_on_http_error():
     """Service propagates HTTPStatusError from the API."""
-    mock_response = _make_mock_response(status_code=401)
-    mock_client = AsyncMock()
-    mock_client.post.return_value = mock_response
+    mock_client = _make_mock_http_client(status_code=401)
 
     with patch("whatsapp.services.WHATSAPP_ACCESS_TOKEN", "bad-token"), \
-         patch("whatsapp.services.WHATSAPP_API_BASE_URL", "https://example.com/messages"), \
-         patch("httpx.AsyncClient") as mock_async_client:
-        mock_async_client.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_async_client.return_value.__aexit__ = AsyncMock(return_value=False)
-
-        from whatsapp.services import WhatsAppService
+         patch("whatsapp.services.WHATSAPP_API_BASE_URL", "https://example.com/messages"):
         with pytest.raises(httpx.HTTPStatusError):
-            await WhatsAppService().send_message("+15550001234", "Hi")
+            await WhatsAppService(mock_client).send_message("+15550001234", "Hi")
 
 
 # ---------------------------------------------------------------------------
 # Router / integration tests
 # ---------------------------------------------------------------------------
 
-@pytest.fixture()
-def client():
-    """Return a FastAPI TestClient with the WhatsApp router mounted."""
-    from fastapi import FastAPI
-    from whatsapp.router import router
-
-    app = FastAPI()
-    app.include_router(router)
-    return TestClient(app)
-
-
-def test_post_whatsapp_send_success(client):
+def test_post_whatsapp_send_success():
     """POST /whatsapp/send returns 200 and the API payload."""
-    mock_response = _make_mock_response()
-    mock_client = AsyncMock()
-    mock_client.post.return_value = mock_response
+    mock_client = _make_mock_http_client()
 
     with patch("whatsapp.services.WHATSAPP_ACCESS_TOKEN", "test-token"), \
-         patch("whatsapp.services.WHATSAPP_API_BASE_URL", "https://example.com/messages"), \
-         patch("httpx.AsyncClient") as mock_async_client:
-        mock_async_client.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_async_client.return_value.__aexit__ = AsyncMock(return_value=False)
-
-        response = client.post(
-            "/whatsapp/send",
-            params={"phone": "+15550001234", "message": "Hello from tests!"},
-        )
+         patch("whatsapp.services.WHATSAPP_API_BASE_URL", "https://example.com/messages"):
+        with TestClient(_make_app(mock_client)) as tc:
+            response = tc.post(
+                "/whatsapp/send",
+                params={"phone": "+15550001234", "message": "Hello from tests!"},
+            )
 
     assert response.status_code == 200
     assert response.json() == MOCK_API_RESPONSE
 
 
-def test_post_whatsapp_send_missing_params(client):
+def test_post_whatsapp_send_missing_params():
     """POST /whatsapp/send with missing query params returns 422."""
-    response = client.post("/whatsapp/send")
+    mock_client = _make_mock_http_client()
+    with TestClient(_make_app(mock_client)) as tc:
+        response = tc.post("/whatsapp/send")
     assert response.status_code == 422

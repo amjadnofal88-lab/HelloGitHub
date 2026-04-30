@@ -6,6 +6,9 @@ from .config import WHATSAPP_ACCESS_TOKEN, WHATSAPP_API_BASE_URL
 class WhatsAppService:
     """Sends messages via the Meta WhatsApp Cloud API."""
 
+    def __init__(self, client: httpx.AsyncClient) -> None:
+        self._client = client
+
     async def send_message(self, phone: str, message: str) -> dict:
         """Send a text message to the given phone number.
 
@@ -29,9 +32,8 @@ class WhatsAppService:
             "type": "text",
             "text": {"body": message},
         }
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                WHATSAPP_API_BASE_URL, json=payload, headers=headers
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self._client.post(
+            WHATSAPP_API_BASE_URL, json=payload, headers=headers
+        )
+        response.raise_for_status()
+        return response.json()
