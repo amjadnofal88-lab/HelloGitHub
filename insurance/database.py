@@ -1,5 +1,6 @@
 """Database setup and connection management."""
 
+import json
 import sqlite3
 import os
 
@@ -52,4 +53,32 @@ def init_db():
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                action TEXT NOT NULL,
+                payload TEXT,
+                user_id INTEGER,
+                created_at TEXT DEFAULT (datetime('now'))
+            );
         """)
+
+
+def insert_audit_log(action, payload=None, user_id=None):
+    """Insert a record into the audit_logs table.
+
+    Args:
+        action: A string describing the action being logged (e.g. 'whatsapp_sent').
+        payload: An optional dict of additional data; stored as JSON.
+        user_id: An optional integer identifying the user who triggered the action.
+
+    Returns:
+        The row id of the newly inserted audit log entry.
+    """
+    payload_json = json.dumps(payload) if payload is not None else None
+    with get_connection() as conn:
+        cursor = conn.execute(
+            "INSERT INTO audit_logs (action, payload, user_id) VALUES (?, ?, ?)",
+            (action, payload_json, user_id),
+        )
+        return cursor.lastrowid

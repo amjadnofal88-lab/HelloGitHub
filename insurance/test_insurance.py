@@ -5,6 +5,7 @@ Run with: python test_insurance.py
 
 import os
 import sys
+import json
 import unittest
 import tempfile
 
@@ -162,6 +163,40 @@ class TestClaims(BaseTest):
         clm_id, _ = ops.create_claim(pid, "2024-06-01", "Test", 500.0)
         ops.delete_claim(clm_id)
         self.assertIsNone(ops.get_claim(clm_id))
+
+
+class TestAuditLog(BaseTest):
+    def test_insert_returns_id(self):
+        log_id = database.insert_audit_log(
+            action="whatsapp_sent",
+            payload={"phone": "+1234567890", "message": "Hello"},
+            user_id=1,
+        )
+        self.assertIsNotNone(log_id)
+        self.assertGreater(log_id, 0)
+
+    def test_insert_without_optional_fields(self):
+        log_id = database.insert_audit_log(action="login")
+        self.assertIsNotNone(log_id)
+
+    def test_payload_stored_as_json(self):
+        payload = {"phone": "+1234567890", "message": "Test message"}
+        database.insert_audit_log(action="whatsapp_sent_payload_test", payload=payload, user_id=42)
+        with database.get_connection() as conn:
+            row = conn.execute(
+                "SELECT payload, user_id FROM audit_logs WHERE action = 'whatsapp_sent_payload_test'"
+            ).fetchone()
+        self.assertEqual(json.loads(row["payload"]), payload)
+        self.assertEqual(row["user_id"], 42)
+
+    def test_multiple_entries(self):
+        database.insert_audit_log(action="whatsapp_sent", user_id=1)
+        database.insert_audit_log(action="whatsapp_sent", user_id=2)
+        with database.get_connection() as conn:
+            count = conn.execute(
+                "SELECT COUNT(*) FROM audit_logs WHERE action = 'whatsapp_sent'"
+            ).fetchone()[0]
+        self.assertEqual(count, 2)
 
 
 class TestReports(BaseTest):
