@@ -1,11 +1,7 @@
 from contextlib import asynccontextmanager
 
 import httpx
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from fastapi import FastAPI  # noqa: E402 — must come after load_dotenv
+from fastapi import FastAPI
 
 from .config import WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID
 from .router import router
