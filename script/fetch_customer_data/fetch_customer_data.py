@@ -206,7 +206,7 @@ def process_file(content, file_info):
     if ext == '.xlsx':
         return extract_xlsx_records(content), 'xlsx'
     if ext == '.xls':
-        raise ValueError('صيغة .xls غير مدعومة، حوّل الملف إلى .xlsx أولاً')
+        raise ValueError('.xls files are not supported; حوّل الملف إلى .xlsx أولاً')
     if ext in ('.db', '.sqlite'):
         return extract_sqlite_records(content), 'sqlite'
     raise ValueError('صيغة غير مدعومة: {}'.format(ext))
