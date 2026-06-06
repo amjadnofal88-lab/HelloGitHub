@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db
@@ -28,6 +28,8 @@ def logout():
 
 @auth_bp.route("/bootstrap-admin", methods=["POST"])
 def bootstrap_admin():
+    if not current_app.config.get("ALLOW_BOOTSTRAP_ADMIN", False):
+        return {"error": "bootstrap admin is disabled"}, 403
     if User.query.count() > 0:
         return {"error": "Users already exist"}, 409
 

@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from flask import Blueprint, abort, g, jsonify, render_template, request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 
 from .auth_helpers import login_required
@@ -16,20 +17,54 @@ def _enforce_write_role():
         abort(403)
 
 
+def _bad_request(message):
+    return {"error": message}, 400
+
+
+def _parse_int(payload, key):
+    value = payload.get(key)
+    if value in (None, ""):
+        raise ValueError(f"{key} is required")
+    return int(value)
+
+
+def _parse_float(payload, key, default=None):
+    value = payload.get(key, default)
+    if value in (None, ""):
+        raise ValueError(f"{key} is required")
+    return float(value)
+
+
+def _parse_due_date(payload):
+    due_date = payload.get("due_date")
+    if not due_date:
+        raise ValueError("due_date is required")
+    return datetime.strptime(due_date, "%Y-%m-%d").date()
+
+
 @vip_bp.route("/cards", methods=["GET", "POST"])
 @login_required
 def cards():
     _enforce_write_role()
     if request.method == "POST":
         payload = request.get_json(silent=True) or request.form
+        try:
+            customer_id = _parse_int(payload, "customer_id")
+            monthly_fee = _parse_float(payload, "monthly_fee", 0)
+        except ValueError as exc:
+            return _bad_request(str(exc))
         card = VipCard(
-            customer_id=int(payload["customer_id"]),
+            customer_id=customer_id,
             card_number=payload.get("card_number") or f"VIP-{uuid.uuid4().hex[:8].upper()}",
-            monthly_fee=float(payload.get("monthly_fee", 0)),
+            monthly_fee=monthly_fee,
             status=payload.get("status", "active"),
         )
         db.session.add(card)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return _bad_request("invalid or duplicate vip card data")
 
     rows = VipCard.query.order_by(VipCard.created_at.desc()).all()
     if request.headers.get("Accept") == "application/json" or request.is_json:
@@ -54,17 +89,28 @@ def installments():
     _enforce_write_role()
     if request.method == "POST":
         payload = request.get_json(silent=True) or request.form
+        try:
+            customer_id = _parse_int(payload, "customer_id")
+            reference_id = _parse_int(payload, "reference_id")
+            amount = _parse_float(payload, "amount")
+            due_date = _parse_due_date(payload)
+        except ValueError as exc:
+            return _bad_request(str(exc))
         installment = Installment(
-            customer_id=int(payload["customer_id"]),
+            customer_id=customer_id,
             module_type="vip",
             reference_type="vip_card",
-            reference_id=int(payload["reference_id"]),
-            amount=float(payload["amount"]),
-            due_date=datetime.strptime(payload["due_date"], "%Y-%m-%d").date(),
+            reference_id=reference_id,
+            amount=amount,
+            due_date=due_date,
             status=payload.get("status", "pending"),
         )
         db.session.add(installment)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return _bad_request("invalid installment data")
 
     rows = Installment.query.filter_by(module_type="vip").order_by(Installment.due_date.desc()).all()
     if request.headers.get("Accept") == "application/json" or request.is_json:

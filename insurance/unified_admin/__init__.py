@@ -26,7 +26,7 @@ def create_app(environment=None):
 
     with app.app_context():
         db.create_all()
-        if User.query.count() == 0:
+        if app.config.get("ALLOW_BOOTSTRAP_ADMIN", False) and User.query.count() == 0:
             db.session.add(
                 User(
                     username="admin",

@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from flask import Blueprint, abort, g, jsonify, render_template, request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 
 from .auth_helpers import login_required
@@ -16,19 +17,54 @@ def _enforce_write_role():
         abort(403)
 
 
+def _bad_request(message):
+    return {"error": message}, 400
+
+
+def _parse_int(payload, key):
+    value = payload.get(key)
+    if value in (None, ""):
+        raise ValueError(f"{key} is required")
+    return int(value)
+
+
+def _parse_float(payload, key, default=None):
+    value = payload.get(key, default)
+    if value in (None, ""):
+        raise ValueError(f"{key} is required")
+    return float(value)
+
+
+def _parse_due_date(payload):
+    due_date = payload.get("due_date")
+    if not due_date:
+        raise ValueError("due_date is required")
+    return datetime.strptime(due_date, "%Y-%m-%d").date()
+
+
 @insurance_bp.route("/customers", methods=["GET", "POST"])
 @login_required
 def customers():
     _enforce_write_role()
     if request.method == "POST":
         payload = request.get_json(silent=True) or request.form
+        name = payload.get("name", "").strip()
+        email = payload.get("email", "").strip()
+        if not name:
+            return _bad_request("name is required")
+        if not email:
+            return _bad_request("email is required")
         customer = Customer(
-            name=payload.get("name", "").strip(),
-            email=payload.get("email", "").strip(),
+            name=name,
+            email=email,
             phone=payload.get("phone"),
         )
         db.session.add(customer)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return _bad_request("invalid or duplicate customer data")
 
     rows = Customer.query.order_by(Customer.created_at.desc()).all()
     if request.headers.get("Accept") == "application/json" or request.is_json:
@@ -47,8 +83,11 @@ def policies():
     _enforce_write_role()
     if request.method == "POST":
         payload = request.get_json(silent=True) or request.form
-        customer_id = int(payload["customer_id"])
-        premium_amount = float(payload.get("premium_amount", 0))
+        try:
+            customer_id = _parse_int(payload, "customer_id")
+            premium_amount = _parse_float(payload, "premium_amount", 0)
+        except ValueError as exc:
+            return _bad_request(str(exc))
         policy = Policy(
             customer_id=customer_id,
             policy_number=payload.get("policy_number") or f"POL-{uuid.uuid4().hex[:8].upper()}",
@@ -56,7 +95,11 @@ def policies():
             status=payload.get("status", "active"),
         )
         db.session.add(policy)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return _bad_request("invalid or duplicate policy data")
 
     rows = Policy.query.order_by(Policy.created_at.desc()).all()
     if request.headers.get("Accept") == "application/json" or request.is_json:
@@ -81,17 +124,28 @@ def installments():
     _enforce_write_role()
     if request.method == "POST":
         payload = request.get_json(silent=True) or request.form
+        try:
+            customer_id = _parse_int(payload, "customer_id")
+            reference_id = _parse_int(payload, "reference_id")
+            amount = _parse_float(payload, "amount")
+            due_date = _parse_due_date(payload)
+        except ValueError as exc:
+            return _bad_request(str(exc))
         installment = Installment(
-            customer_id=int(payload["customer_id"]),
+            customer_id=customer_id,
             module_type="insurance",
             reference_type="policy",
-            reference_id=int(payload["reference_id"]),
-            amount=float(payload["amount"]),
-            due_date=datetime.strptime(payload["due_date"], "%Y-%m-%d").date(),
+            reference_id=reference_id,
+            amount=amount,
+            due_date=due_date,
             status=payload.get("status", "pending"),
         )
         db.session.add(installment)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return _bad_request("invalid installment data")
 
     rows = Installment.query.filter_by(module_type="insurance").order_by(Installment.due_date.desc()).all()
     if request.headers.get("Accept") == "application/json" or request.is_json:

@@ -1,5 +1,6 @@
 import unittest
 from datetime import date
+from unittest.mock import patch
 
 from werkzeug.security import generate_password_hash
 
@@ -138,6 +139,33 @@ class UnifiedAdminTestCase(unittest.TestCase):
             "/insurance/customers",
             json={"name": "Unauthorized", "email": "u@example.com"},
         )
+        self.assertEqual(response.status_code, 403)
+
+    def test_invalid_payloads_return_400(self):
+        self._bootstrap_and_login()
+        invalid_policy = self.client.post("/insurance/policies", json={"customer_id": "abc", "premium_amount": "bad"})
+        self.assertEqual(invalid_policy.status_code, 400)
+
+        invalid_installment = self.client.post(
+            "/insurance/installments",
+            json={"customer_id": 1, "reference_id": 1, "amount": 1, "due_date": "06/01/2026"},
+        )
+        self.assertEqual(invalid_installment.status_code, 400)
+
+        invalid_card = self.client.post("/vip/cards", json={"customer_id": "", "monthly_fee": "bad"})
+        self.assertEqual(invalid_card.status_code, 400)
+
+        invalid_vip_installment = self.client.post(
+            "/vip/installments",
+            json={"customer_id": 1, "reference_id": 1, "amount": "bad", "due_date": "2026/06/01"},
+        )
+        self.assertEqual(invalid_vip_installment.status_code, 400)
+
+    def test_bootstrap_admin_disabled_in_production(self):
+        with patch.dict("os.environ", {"SECRET_KEY": "production-secret"}, clear=False):
+            app = create_app("production")
+        client = app.test_client()
+        response = client.post("/auth/bootstrap-admin", json={"username": "x", "password": "y"})
         self.assertEqual(response.status_code, 403)
 
 
