@@ -12,6 +12,10 @@ from .models import Customer, Installment, Policy
 insurance_bp = Blueprint("insurance", __name__, url_prefix="/insurance")
 
 
+class ValidationError(ValueError):
+    pass
+
+
 def _enforce_write_role():
     if request.method == "POST" and g.current_user.role != "admin":
         abort(403)
@@ -24,22 +28,33 @@ def _bad_request(message):
 def _parse_int(payload, key):
     value = payload.get(key)
     if value in (None, ""):
-        raise ValueError(f"{key} is required")
-    return int(value)
+        raise ValidationError(f"{key} is required")
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(f"{key} must be an integer") from exc
 
 
 def _parse_float(payload, key, default=None):
     value = payload.get(key, default)
+    if value in (None, "") and default is None:
+        raise ValidationError(f"{key} is required")
     if value in (None, ""):
-        raise ValueError(f"{key} is required")
-    return float(value)
+        value = default
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError(f"{key} must be a number") from exc
 
 
 def _parse_due_date(payload):
     due_date = payload.get("due_date")
     if not due_date:
-        raise ValueError("due_date is required")
-    return datetime.strptime(due_date, "%Y-%m-%d").date()
+        raise ValidationError("due_date is required")
+    try:
+        return datetime.strptime(due_date, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise ValidationError("due_date must be YYYY-MM-DD") from exc
 
 
 @insurance_bp.route("/customers", methods=["GET", "POST"])
@@ -86,8 +101,8 @@ def policies():
         try:
             customer_id = _parse_int(payload, "customer_id")
             premium_amount = _parse_float(payload, "premium_amount", 0)
-        except ValueError as exc:
-            return _bad_request(str(exc))
+        except ValidationError:
+            return _bad_request("invalid policy payload")
         policy = Policy(
             customer_id=customer_id,
             policy_number=payload.get("policy_number") or f"POL-{uuid.uuid4().hex[:8].upper()}",
@@ -129,8 +144,8 @@ def installments():
             reference_id = _parse_int(payload, "reference_id")
             amount = _parse_float(payload, "amount")
             due_date = _parse_due_date(payload)
-        except ValueError as exc:
-            return _bad_request(str(exc))
+        except ValidationError:
+            return _bad_request("invalid installment payload")
         installment = Installment(
             customer_id=customer_id,
             module_type="insurance",
