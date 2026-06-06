@@ -31,8 +31,8 @@ This directory now includes a unified Flask-based administration platform that c
 
 ## Structure
 
-- `/tmp/workspace/amjadnofal88-lab/HelloGitHub/insurance/webapp.py` - Flask entrypoint
-- `/tmp/workspace/amjadnofal88-lab/HelloGitHub/insurance/unified_admin/` - app package
+- `insurance/webapp.py` - Flask entrypoint
+- `insurance/unified_admin/` - app package
   - `__init__.py` app factory + blueprint registration
   - `auth.py`, `dashboard.py`, `insurance_module.py`, `vip.py`, `reports_module.py`
   - `models.py` consolidated schema models
@@ -42,7 +42,7 @@ This directory now includes a unified Flask-based administration platform that c
 ## Setup
 
 ```bash
-cd /tmp/workspace/amjadnofal88-lab/HelloGitHub/insurance
+cd insurance
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -51,7 +51,7 @@ pip install -r requirements.txt
 ## Run (Development)
 
 ```bash
-cd /tmp/workspace/amjadnofal88-lab/HelloGitHub/insurance
+cd insurance
 python webapp.py
 ```
 
@@ -88,14 +88,14 @@ If `DATABASE_URL` is not set, SQLite is used.
 
 ## Migration Strategy
 
-Use `/tmp/workspace/amjadnofal88-lab/HelloGitHub/insurance/unified_admin/migrations.py` function `migrate_legacy_sqlite(...)` to import legacy `customers` and `policies` from old `insurance.db` into the unified schema.
+Use `insurance/unified_admin/migrations.py` function `migrate_legacy_sqlite(...)` to import legacy `customers` and `policies` from old `insurance.db` into the unified schema.
 
 ## Testing
 
 Run legacy CLI tests and new unified-app integration tests:
 
 ```bash
-cd /tmp/workspace/amjadnofal88-lab/HelloGitHub/insurance
+cd insurance
 python test_insurance.py
 python test_unified_admin.py
 ```
@@ -103,4 +103,4 @@ python test_unified_admin.py
 ## Legacy CLI
 
 The original CLI implementation remains available in:
-- `/tmp/workspace/amjadnofal88-lab/HelloGitHub/insurance/app.py`
+- `insurance/app.py`

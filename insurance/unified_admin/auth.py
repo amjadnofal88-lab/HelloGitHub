@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, g, redirect, render_template, request, session, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db
@@ -36,4 +36,4 @@ def bootstrap_admin():
     user = User(username=username, password_hash=generate_password_hash(password), role="admin")
     db.session.add(user)
     db.session.commit()
-    return {"message": "Admin created", "username": username}, 201
+    return {"message": "Admin created"}, 201

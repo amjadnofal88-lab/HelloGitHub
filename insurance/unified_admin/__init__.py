@@ -17,7 +17,10 @@ from .vip import vip_bp
 def create_app(environment=None):
     app = Flask(__name__, template_folder="templates", static_folder="static")
     env = environment or os.getenv("APP_ENV", "development")
-    app.config.from_object(CONFIG_MAP.get(env, CONFIG_MAP["development"]))
+    config_class = CONFIG_MAP.get(env, CONFIG_MAP["development"])
+    app.config.from_object(config_class)
+    if hasattr(config_class, "validate"):
+        config_class.validate()
 
     db.init_app(app)
 

@@ -22,6 +22,11 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
 
+    @staticmethod
+    def validate():
+        if os.getenv("SECRET_KEY") in (None, "", "dev-secret-change-me"):
+            raise RuntimeError("SECRET_KEY must be set in production")
+
 
 CONFIG_MAP = {
     "development": DevelopmentConfig,

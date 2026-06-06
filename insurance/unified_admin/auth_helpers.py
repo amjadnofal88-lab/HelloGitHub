@@ -2,6 +2,7 @@ from functools import wraps
 
 from flask import abort, g, redirect, session, url_for
 
+from .extensions import db
 from .models import User
 
 
@@ -10,7 +11,7 @@ def load_current_user():
     if not user_id:
         g.current_user = None
         return
-    g.current_user = User.query.get(user_id)
+    g.current_user = db.session.get(User, user_id)
 
 
 def login_required(view_func):
