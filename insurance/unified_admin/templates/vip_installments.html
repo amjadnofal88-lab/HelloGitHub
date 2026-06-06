@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>VIP - Installments</h2>
+<table><thead><tr><th>ID</th><th>Customer</th><th>Card</th><th>Amount</th><th>Due Date</th><th>Status</th></tr></thead><tbody>
+{% for i in installments %}<tr><td>{{ i.id }}</td><td>{{ i.customer_id }}</td><td>{{ i.reference_id }}</td><td>{{ i.amount }}</td><td>{{ i.due_date }}</td><td>{{ i.status }}</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}
