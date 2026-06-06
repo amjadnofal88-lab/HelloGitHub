@@ -16,8 +16,12 @@ def build_headers():
 def fetch_repos(username):
     url = f"https://api.github.com/users/{username}/repos?per_page=100&sort=updated"
     response = requests.get(url, headers=build_headers(), timeout=20)
+    if response.status_code == 200:
+        return response.json()
+    if response.status_code in (401, 403):
+        print("GitHub API access denied or rate-limited. Set a valid GITHUB_TOKEN and retry.")
+        return []
     response.raise_for_status()
-    return response.json()
 
 
 def main():
