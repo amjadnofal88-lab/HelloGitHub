@@ -27,7 +27,7 @@
 
 - تحديد مستودع/فرع مختلف:
   ```bash
-  python fetch_customer_data.py --owner amjadnofal88-lab --repo HelloGitHub --branch main
+  python fetch_customer_data.py --owner amjadnofal88-lab --repo HelloGitHub --branch master
   ```
 
 - تحديد اسم ملف الإخراج:
