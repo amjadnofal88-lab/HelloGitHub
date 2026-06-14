@@ -1,11 +1,68 @@
+import os
 import unittest
 from datetime import date
+from unittest.mock import patch
 
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from unified_admin import create_app
 from unified_admin.extensions import db
 from unified_admin.models import Customer, Installment, Policy, User, VipCard
+
+
+class BootstrapAdminTestCase(unittest.TestCase):
+    """Tests for secure bootstrap admin password handling."""
+
+    def test_no_hardcoded_password_in_source(self):
+        """Ensure no hardcoded 'admin123' password exists in the module."""
+        import unified_admin
+        source = open(unified_admin.__file__).read()
+        # Check that the literal hardcoded password is not in the source
+        self.assertNotIn("admin123", source, 
+                        "Hardcoded password 'admin123' found in unified_admin/__init__.py")
+
+    def test_bootstrap_respects_initial_admin_password_env_var(self):
+        """Verify that INITIAL_ADMIN_PASSWORD environment variable is used if set."""
+        test_password = "MySecurePassword123!"
+        with patch.dict(os.environ, {"INITIAL_ADMIN_PASSWORD": test_password}):
+            app = create_app("testing")
+            with app.app_context():
+                admin_user = User.query.filter_by(username="admin").first()
+                self.assertIsNotNone(admin_user, "Admin user should be created")
+                # Verify the password hash matches the env var password
+                self.assertTrue(check_password_hash(admin_user.password_hash, test_password),
+                               "Admin password should match INITIAL_ADMIN_PASSWORD env var")
+
+    def test_bootstrap_generates_random_password_when_env_var_not_set(self):
+        """Verify that a secure random password is generated when INITIAL_ADMIN_PASSWORD is not set."""
+        # Ensure the env var is not set
+        with patch.dict(os.environ, {}, clear=False):
+            if "INITIAL_ADMIN_PASSWORD" in os.environ:
+                del os.environ["INITIAL_ADMIN_PASSWORD"]
+            
+            app = create_app("testing")
+            with app.app_context():
+                admin_user = User.query.filter_by(username="admin").first()
+                self.assertIsNotNone(admin_user, "Admin user should be created")
+                # Verify that the password hash is set (not empty)
+                self.assertTrue(admin_user.password_hash, "Password hash should not be empty")
+                # Verify it's not the old hardcoded password
+                self.assertFalse(check_password_hash(admin_user.password_hash, "admin123"),
+                                "Admin password should NOT be the old hardcoded 'admin123'")
+
+    def test_bootstrap_warning_logged_when_using_generated_password(self):
+        """Verify that a warning is logged when falling back to generated password."""
+        with patch.dict(os.environ, {}, clear=False):
+            if "INITIAL_ADMIN_PASSWORD" in os.environ:
+                del os.environ["INITIAL_ADMIN_PASSWORD"]
+            
+            with patch('unified_admin.logger') as mock_logger:
+                app = create_app("testing")
+                # Check that warning was called
+                mock_logger.warning.assert_called()
+                call_args = mock_logger.warning.call_args[0][0]
+                self.assertIn("No INITIAL_ADMIN_PASSWORD environment variable set", call_args)
+                self.assertIn("Generated bootstrap admin password", call_args)
 
 
 class UnifiedAdminTestCase(unittest.TestCase):
@@ -16,13 +73,13 @@ class UnifiedAdminTestCase(unittest.TestCase):
             db.drop_all()
             db.create_all()
 
-    def _bootstrap_and_login(self):
+    def _bootstrap_and_login(self, password="admin123"):
         with self.app.app_context():
             User.query.delete()
             db.session.commit()
-        resp = self.client.post("/auth/bootstrap-admin", json={"username": "admin", "password": "admin123"})
+        resp = self.client.post("/auth/bootstrap-admin", json={"username": "admin", "password": password})
         self.assertIn(resp.status_code, (201, 409))
-        login = self.client.post("/auth/login", data={"username": "admin", "password": "admin123"}, follow_redirects=False)
+        login = self.client.post("/auth/login", data={"username": "admin", "password": password}, follow_redirects=False)
         self.assertEqual(login.status_code, 302)
 
     def test_login_required(self):
