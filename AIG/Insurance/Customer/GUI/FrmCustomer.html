@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIG – Customer Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: #003087;
+            color: #ffffff;
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 56px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .navbar .brand { font-size: 22px; font-weight: bold; letter-spacing: 2px; }
+        .navbar .brand span { font-size: 13px; font-weight: normal; margin-left: 10px; color: #a8c3f0; }
+        .navbar .nav-links { display: flex; gap: 24px; list-style: none; }
+        .navbar .nav-links a {
+            color: #d0dff8; text-decoration: none; font-size: 14px;
+            padding: 4px 0; border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .navbar .nav-links a:hover, .navbar .nav-links a.active { color: #fff; border-bottom-color: #fff; }
+        .navbar .user-info { font-size: 13px; color: #a8c3f0; }
+
+        /* Layout */
+        .main-content { max-width: 1200px; margin: 32px auto; padding: 0 24px; }
+        .page-title { font-size: 22px; font-weight: bold; color: #1a2e5e; margin-bottom: 24px; }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .toolbar input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 280px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .toolbar input[type="text"]:focus { border-color: #003087; }
+
+        .btn {
+            padding: 8px 16px; border-radius: 4px; font-size: 13px;
+            font-weight: 600; border: none; cursor: pointer;
+            text-decoration: none; display: inline-block;
+            transition: background-color 0.2s;
+        }
+        .btn-primary   { background-color: #003087; color: #fff; }
+        .btn-primary:hover { background-color: #002070; }
+        .btn-secondary { background-color: #6b7280; color: #fff; }
+        .btn-secondary:hover { background-color: #4b5563; }
+        .btn-danger    { background-color: #dc2626; color: #fff; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+        /* Card */
+        .section {
+            background: #fff; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 28px; overflow: hidden;
+        }
+        .section-header {
+            padding: 16px 24px; border-bottom: 1px solid #e5e7eb;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .section-header h2 { font-size: 16px; font-weight: 700; color: #1a2e5e; }
+
+        /* Table */
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #f8fafc; padding: 12px 16px; text-align: left;
+            font-size: 12px; font-weight: 700; color: #6b7280;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tbody td { padding: 13px 16px; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background-color: #f8fafc; }
+
+        /* Modal overlay */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4); z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #fff; border-radius: 8px; width: 100%; max-width: 560px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); overflow: hidden;
+        }
+        .modal-header {
+            background: #003087; color: #fff; padding: 16px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .modal-header h3 { font-size: 16px; font-weight: 700; }
+        .modal-close {
+            background: none; border: none; color: #fff;
+            font-size: 20px; cursor: pointer; line-height: 1;
+        }
+        .modal-body { padding: 24px; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 9px 12px; border: 1px solid #d1d5db;
+            border-radius: 4px; font-size: 14px; outline: none;
+            transition: border-color 0.2s; font-family: inherit;
+        }
+        .form-group textarea { resize: vertical; min-height: 70px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #003087; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 12px; }
+
+        .error-text { color: #dc2626; font-size: 12px; margin-top: 4px; display: none; }
+
+        /* Confirm dialog */
+        .confirm-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4); z-index: 2000;
+            justify-content: center; align-items: center;
+        }
+        .confirm-overlay.open { display: flex; }
+        .confirm-box {
+            background: #fff; border-radius: 8px; width: 100%; max-width: 380px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); padding: 28px 28px 20px;
+            text-align: center;
+        }
+        .confirm-box p { font-size: 15px; color: #374151; margin-bottom: 20px; }
+        .confirm-box .confirm-actions { display: flex; justify-content: center; gap: 12px; }
+
+        /* Pagination */
+        .pagination { padding: 12px 24px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #6b7280; }
+        .pagination button {
+            padding: 5px 12px; border: 1px solid #d1d5db; border-radius: 4px;
+            background: #fff; cursor: pointer; font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        .pagination button:hover:not(:disabled) { background: #eef2ff; border-color: #003087; color: #003087; }
+        .pagination button:disabled { opacity: 0.4; cursor: default; }
+
+        .footer { text-align: center; font-size: 12px; color: #9ca3af; padding: 24px 0 16px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="brand">AIG <span>Insurance Portal</span></div>
+        <ul class="nav-links">
+            <li><a href="../../GUI/FrmInsurance.html">Dashboard</a></li>
+            <li><a href="FrmCustomer.html" class="active">Customers</a></li>
+            <li><a href="../../Policy/GUI/FrmPolicy.html">Policies</a></li>
+            <li><a href="../../Claims/GUI/FrmClaims.html">Claims</a></li>
+        </ul>
+        <div class="user-info">Welcome, Agent</div>
+    </nav>
+
+    <div class="main-content">
+        <div class="page-title">Customer Management</div>
+
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="Search by name, email, or phone…" oninput="applyFilters()" />
+            <button class="btn btn-primary" onclick="openModal()">+ New Customer</button>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>Customers</h2>
+                <span id="recordCount" style="font-size:13px;color:#6b7280;"></span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Date of Birth</th>
+                        <th>Address</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="customerTableBody"></tbody>
+            </table>
+            <div class="pagination">
+                <button id="prevBtn" onclick="changePage(-1)">&#8592; Prev</button>
+                <span id="pageInfo"></span>
+                <button id="nextBtn" onclick="changePage(1)">Next &#8594;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">&copy; AIG &mdash; Insurance Portal</div>
+
+    <!-- Add / Edit Customer Modal -->
+    <div class="modal-overlay" id="customerModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <div class="modal-header">
+                <h3 id="modalTitle">New Customer</h3>
+                <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custName">Full Name *</label>
+                        <input type="text" id="custName" placeholder="e.g. John Smith" />
+                        <div class="error-text" id="custNameError">Please enter the customer name.</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="custEmail">Email Address *</label>
+                        <input type="email" id="custEmail" placeholder="e.g. john@example.com" />
+                        <div class="error-text" id="custEmailError">Please enter a valid email address.</div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custPhone">Phone</label>
+                        <input type="tel" id="custPhone" placeholder="e.g. +1 555 000 1234" />
+                    </div>
+                    <div class="form-group">
+                        <label for="custDob">Date of Birth</label>
+                        <input type="date" id="custDob" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custAddress">Address</label>
+                        <textarea id="custAddress" placeholder="Street, City, State, ZIP"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="saveBtn" onclick="saveCustomer()">Save Customer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation -->
+    <div class="confirm-overlay" id="confirmOverlay">
+        <div class="confirm-box">
+            <p id="confirmMsg">Are you sure you want to delete this customer?</p>
+            <div class="confirm-actions">
+                <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var customers = [
+            { id: 1, name: 'John Smith',      email: 'john.smith@example.com',    phone: '+1 555 010 1001', dob: '1985-03-22', address: '12 Oak Ave, Springfield, IL 62701' },
+            { id: 2, name: 'Mary Johnson',    email: 'mary.johnson@example.com',  phone: '+1 555 010 1002', dob: '1990-07-14', address: '34 Maple St, Chicago, IL 60601'    },
+            { id: 3, name: 'Robert Davis',    email: 'robert.davis@example.com',  phone: '+1 555 010 1003', dob: '1972-11-05', address: '56 Pine Rd, Rockford, IL 61101'   },
+            { id: 4, name: 'Linda Brown',     email: 'linda.brown@example.com',   phone: '+1 555 010 1004', dob: '1988-01-30', address: '78 Cedar Ln, Peoria, IL 61602'    },
+            { id: 5, name: 'Michael Wilson',  email: 'michael.wilson@example.com',phone: '+1 555 010 1005', dob: '1965-09-18', address: '90 Elm Blvd, Aurora, IL 60505'    },
+            { id: 6, name: 'Sarah Miller',    email: 'sarah.miller@example.com',  phone: '+1 555 010 1006', dob: '1993-05-25', address: '11 Birch Dr, Joliet, IL 60432'    },
+            { id: 7, name: 'David Lee',       email: 'david.lee@example.com',     phone: '+1 555 010 1007', dob: '1980-12-03', address: '22 Willow Way, Naperville, IL 60540'},
+            { id: 8, name: 'Patricia Harris', email: 'patricia.harris@example.com',phone: '+1 555 010 1008',dob: '1978-08-17', address: '33 Spruce Ct, Evanston, IL 60201' }
+        ];
+
+        var nextId = 9;
+        var filtered = customers.slice();
+        var currentPage = 1;
+        var pageSize = 5;
+        var editingId = null;
+        var deleteTargetId = null;
+
+        /* ---- Filtering ---- */
+        function applyFilters() {
+            var q = document.getElementById('searchInput').value.toLowerCase();
+            filtered = customers.filter(function(c) {
+                return !q ||
+                    c.name.toLowerCase().indexOf(q) !== -1 ||
+                    c.email.toLowerCase().indexOf(q) !== -1 ||
+                    (c.phone && c.phone.toLowerCase().indexOf(q) !== -1);
+            });
+            currentPage = 1;
+            renderTable();
+        }
+
+        /* ---- Rendering ---- */
+        function renderTable() {
+            var tbody = document.getElementById('customerTableBody');
+            var total = filtered.length;
+            var totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (currentPage > totalPages) currentPage = totalPages;
+            var start = (currentPage - 1) * pageSize;
+            var page = filtered.slice(start, start + pageSize);
+
+            document.getElementById('recordCount').textContent = total + ' record' + (total !== 1 ? 's' : '');
+            document.getElementById('pageInfo').textContent = 'Page ' + currentPage + ' of ' + totalPages;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+
+            var rows = '';
+            if (page.length === 0) {
+                rows = '<tr><td colspan="7" style="text-align:center;color:#9ca3af;padding:24px;">No customers found.</td></tr>';
+            } else {
+                for (var i = 0; i < page.length; i++) {
+                    var c = page[i];
+                    rows += '<tr>' +
+                        '<td>' + c.id + '</td>' +
+                        '<td>' + escapeHtml(c.name) + '</td>' +
+                        '<td>' + escapeHtml(c.email) + '</td>' +
+                        '<td>' + escapeHtml(c.phone || '—') + '</td>' +
+                        '<td>' + escapeHtml(c.dob || '—') + '</td>' +
+                        '<td>' + escapeHtml(c.address || '—') + '</td>' +
+                        '<td>' +
+                            '<button class="btn btn-secondary btn-sm" onclick="openEditModal(' + c.id + ')">Edit</button> ' +
+                            '<button class="btn btn-danger btn-sm" onclick="openConfirm(' + c.id + ')">Delete</button>' +
+                        '</td>' +
+                        '</tr>';
+                }
+            }
+            tbody.innerHTML = rows;
+        }
+
+        function changePage(delta) {
+            currentPage += delta;
+            renderTable();
+        }
+
+        /* ---- Modal ---- */
+        function openModal() {
+            editingId = null;
+            document.getElementById('modalTitle').textContent = 'New Customer';
+            document.getElementById('saveBtn').textContent = 'Save Customer';
+            clearForm();
+            document.getElementById('customerModal').classList.add('open');
+            document.getElementById('custName').focus();
+        }
+
+        function openEditModal(id) {
+            var c = findById(id);
+            if (!c) return;
+            editingId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Customer';
+            document.getElementById('saveBtn').textContent = 'Update Customer';
+            document.getElementById('custName').value    = c.name;
+            document.getElementById('custEmail').value   = c.email;
+            document.getElementById('custPhone').value   = c.phone || '';
+            document.getElementById('custDob').value     = c.dob || '';
+            document.getElementById('custAddress').value = c.address || '';
+            hideErrors();
+            document.getElementById('customerModal').classList.add('open');
+            document.getElementById('custName').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('customerModal').classList.remove('open');
+        }
+
+        function clearForm() {
+            ['custName','custEmail','custPhone','custDob','custAddress'].forEach(function(id) {
+                document.getElementById(id).value = '';
+            });
+            hideErrors();
+        }
+
+        function hideErrors() {
+            ['custNameError','custEmailError'].forEach(function(id) {
+                document.getElementById(id).style.display = 'none';
+            });
+        }
+
+        function saveCustomer() {
+            var name    = document.getElementById('custName').value.trim();
+            var email   = document.getElementById('custEmail').value.trim();
+            var phone   = document.getElementById('custPhone').value.trim();
+            var dob     = document.getElementById('custDob').value;
+            var address = document.getElementById('custAddress').value.trim();
+
+            var valid = true;
+            hideErrors();
+
+            if (!name) {
+                document.getElementById('custNameError').style.display = 'block';
+                valid = false;
+            }
+            if (!email || !isValidEmail(email)) {
+                document.getElementById('custEmailError').style.display = 'block';
+                valid = false;
+            }
+            if (!valid) return;
+
+            if (editingId === null) {
+                customers.push({ id: nextId++, name: name, email: email, phone: phone, dob: dob, address: address });
+            } else {
+                var c = findById(editingId);
+                if (c) {
+                    c.name = name; c.email = email; c.phone = phone; c.dob = dob; c.address = address;
+                }
+            }
+
+            closeModal();
+            applyFilters();
+        }
+
+        /* ---- Delete ---- */
+        function openConfirm(id) {
+            deleteTargetId = id;
+            var c = findById(id);
+            document.getElementById('confirmMsg').textContent =
+                'Are you sure you want to delete customer "' + (c ? escapeHtml(c.name) : id) + '"?';
+            document.getElementById('confirmOverlay').classList.add('open');
+        }
+
+        function closeConfirm() {
+            deleteTargetId = null;
+            document.getElementById('confirmOverlay').classList.remove('open');
+        }
+
+        function confirmDelete() {
+            customers = customers.filter(function(c) { return c.id !== deleteTargetId; });
+            closeConfirm();
+            applyFilters();
+        }
+
+        /* ---- Helpers ---- */
+        function findById(id) {
+            for (var i = 0; i < customers.length; i++) {
+                if (customers[i].id === id) return customers[i];
+            }
+            return null;
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(String(text)));
+            return div.innerHTML;
+        }
+
+        /* ---- Close modal on overlay click ---- */
+        document.getElementById('customerModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeConfirm();
+        });
+
+        /* ---- Close modal on Escape key ---- */
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+                closeConfirm();
+            }
+        });
+
+        renderTable();
+    </script>
+</body>
+</html>
