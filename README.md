@@ -74,6 +74,13 @@ HelloGitHub 分享 GitHub 上有趣、入门级的开源项目。**每月 28 号
           <sub>100+ 模型官方直连不掉线</sub>
         </a>
       </th>
+      <th align="center" style="width: 80px;">
+        <a href="https://www.myfatoorah.com/">
+          <img src="https://www.myfatoorah.com/favicon.ico" width="60px"><br>
+          <sub>MyFatoorah</sub><br>
+          <sub>يدعم المنطقة العربية</sub>
+        </a>
+      </th>
     </tr>
   </thead>
 </table>
