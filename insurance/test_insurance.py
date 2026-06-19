@@ -195,5 +195,48 @@ class TestReports(BaseTest):
         self.assertGreater(len(rows), 0)
 
 
+class TestEvents(BaseTest):
+    def test_create_and_get(self):
+        import events as ops
+        eid = ops.create_event("policy_created", {"policy_id": 1, "type": "auto"})
+        self.assertIsNotNone(eid)
+        e = ops.get_event(eid)
+        self.assertEqual(e["type"], "policy_created")
+        self.assertEqual(e["payload"]["policy_id"], 1)
+
+    def test_payload_roundtrip(self):
+        import events as ops
+        payload = {"nested": {"key": "value"}, "list": [1, 2, 3]}
+        eid = ops.create_event("test_event", payload)
+        e = ops.get_event(eid)
+        self.assertEqual(e["payload"], payload)
+
+    def test_get_nonexistent(self):
+        import events as ops
+        self.assertIsNone(ops.get_event(99999))
+
+    def test_list_all(self):
+        import events as ops
+        ops.create_event("type_a", {"x": 1})
+        ops.create_event("type_b", {"x": 2})
+        events = ops.list_events()
+        self.assertGreaterEqual(len(events), 2)
+
+    def test_list_by_type(self):
+        import events as ops
+        ops.create_event("claim_filed", {"claim_id": 10})
+        ops.create_event("claim_filed", {"claim_id": 11})
+        ops.create_event("policy_created", {"policy_id": 5})
+        claim_events = ops.list_events(event_type="claim_filed")
+        self.assertEqual(len(claim_events), 2)
+        self.assertTrue(all(e["type"] == "claim_filed" for e in claim_events))
+
+    def test_delete(self):
+        import events as ops
+        eid = ops.create_event("to_delete", {})
+        ops.delete_event(eid)
+        self.assertIsNone(ops.get_event(eid))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
