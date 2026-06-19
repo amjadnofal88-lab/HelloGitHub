@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Insurance - Policies</h2>
+<table><thead><tr><th>ID</th><th>Customer</th><th>Policy #</th><th>Status</th><th>Premium</th></tr></thead><tbody>
+{% for p in policies %}<tr><td>{{ p.id }}</td><td>{{ p.customer_id }}</td><td>{{ p.policy_number }}</td><td>{{ p.status }}</td><td>{{ p.premium_amount }}</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

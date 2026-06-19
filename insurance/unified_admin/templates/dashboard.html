@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Unified Admin Dashboard</h2>
+<div class="cards">
+  <div class="card"><h4>Total Customers</h4><p>{{ metrics.total_customers }}</p></div>
+  <div class="card"><h4>Active Insurance Policies</h4><p>{{ metrics.active_policies }}</p></div>
+  <div class="card"><h4>Active VIP Cards</h4><p>{{ metrics.active_vip_cards }}</p></div>
+  <div class="card"><h4>Monthly Revenue</h4><p>{{ "%.2f"|format(metrics.monthly_revenue) }}</p></div>
+  <div class="card"><h4>Pending Installments</h4><p>{{ metrics.pending_installments }}</p></div>
+</div>
+{% endblock %}

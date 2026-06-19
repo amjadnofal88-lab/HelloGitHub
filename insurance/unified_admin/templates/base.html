@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elite Insurance Admin</title>
+  <style>
+    :root { --brand: #0f4c81; --bg: #f4f7fb; --card: #fff; }
+    body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); }
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar { width: 240px; background: var(--brand); color: white; padding: 1rem; }
+    .sidebar a { display: block; color: white; text-decoration: none; margin: 0.5rem 0; }
+    .content { flex: 1; padding: 1rem; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .card { background: var(--card); border-radius: 8px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    table { width: 100%; border-collapse: collapse; background: var(--card); }
+    th, td { padding: 8px; border-bottom: 1px solid #ddd; text-align: left; }
+    .topbar { display:flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .btn { background: var(--brand); color:#fff; border:0; border-radius:4px; padding:6px 12px; cursor:pointer; }
+    @media (max-width: 800px) { .layout { flex-direction: column; } .sidebar { width: auto; } }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <h3>Elite Insurance</h3>
+    <a href="/">Dashboard</a>
+    <a href="/insurance/customers">Insurance Customers</a>
+    <a href="/insurance/policies">Insurance Policies</a>
+    <a href="/insurance/installments">Insurance Installments</a>
+    <a href="/vip/cards">VIP Cards</a>
+    <a href="/vip/installments">VIP Installments</a>
+    <a href="/reports/api/overview">Reports API</a>
+    {% if current_user %}<a href="/auth/logout">Logout</a>{% endif %}
+  </nav>
+  <main class="content">
+    <div class="topbar">
+      <strong>{{ current_user.username if current_user else 'Guest' }}</strong>
+      {% if current_user %}<span>Role: {{ current_user.role }}</span>{% endif %}
+    </div>
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>
