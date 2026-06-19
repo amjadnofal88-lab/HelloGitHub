@@ -52,4 +52,23 @@ def init_db():
                 created_at TEXT DEFAULT (datetime('now')),
                 FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS transfers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                policy_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                transfer_date TEXT DEFAULT (datetime('now')),
+                status TEXT DEFAULT 'pending',
+                idempotency_key TEXT UNIQUE,
+                created_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (policy_id) REFERENCES policies(id) ON DELETE CASCADE
+            );
         """)
+        # Migration: add idempotency_key to existing transfers tables that pre-date this column
+        try:
+            conn.execute(
+                "ALTER TABLE transfers ADD COLUMN idempotency_key TEXT UNIQUE"
+            )
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" not in str(e).lower():
+                raise
