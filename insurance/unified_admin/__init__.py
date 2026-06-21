@@ -1,4 +1,6 @@
+import logging
 import os
+import secrets
 
 from flask import Flask, g
 from werkzeug.security import generate_password_hash
@@ -12,6 +14,8 @@ from .insurance_module import insurance_bp
 from .models import User
 from .reports_module import reports_bp
 from .vip import vip_bp
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(environment=None):
@@ -27,10 +31,18 @@ def create_app(environment=None):
     with app.app_context():
         db.create_all()
         if User.query.count() == 0:
+            password = os.getenv("INITIAL_ADMIN_PASSWORD")
+            if not password:
+                password = secrets.token_urlsafe(16)
+                logger.warning(
+                    "No INITIAL_ADMIN_PASSWORD environment variable set. "
+                    "Generated bootstrap admin password: %s — change it immediately.",
+                    password,
+                )
             db.session.add(
                 User(
                     username="admin",
-                    password_hash=generate_password_hash("admin123"),
+                    password_hash=generate_password_hash(password),
                     role="admin",
                 )
             )

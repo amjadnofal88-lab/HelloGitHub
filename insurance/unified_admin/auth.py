@@ -31,8 +31,15 @@ def bootstrap_admin():
     if User.query.count() > 0:
         return {"error": "Users already exist"}, 409
 
-    username = request.json.get("username", "admin") if request.is_json else "admin"
-    password = request.json.get("password", "admin123") if request.is_json else "admin123"
+    if not request.is_json:
+        return {"error": "Content-Type must be application/json"}, 415
+
+    payload = request.get_json(silent=True) or {}
+    username = payload.get("username", "admin")
+    password = payload.get("password", "")
+    if not password:
+        return {"error": "password is required"}, 400
+
     user = User(username=username, password_hash=generate_password_hash(password), role="admin")
     db.session.add(user)
     db.session.commit()
