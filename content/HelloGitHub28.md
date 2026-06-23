@@ -160,7 +160,7 @@ export default class Index extends Component {
 
 
 ### Python 项目
-18、[scylla](https://hellogithub.com/periodical/statistics/click?target=https://github.com/imWildCat/scylla)：一款高质量的免费代理 IP 池工具，仅支持 Python 3.6。[中文文档](https://scylla.wildcat.io/zh/latest/)，特性如下：
+18、[scylla](https://hellogithub.com/periodical/statistics/click?target=https://github.com/MikeChongCan/scylla)：一款高质量的免费代理 IP 池工具，仅支持 Python 3.6。[中文文档](https://scylla.wildcat.io/zh/latest/)，特性如下：
 - 自动化的代理 IP 爬取与验证
 - 易用的 JSON API
 - 简单但美观的 web 用户界面，基于 TypeScript 和 React（例如，代理的地理分布）
@@ -241,6 +241,13 @@ export default class Index extends Component {
           <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/qiniu.jpg" width="60px"><br>
           <sub>七牛云</sub><br>
           <sub>百万 Token 免费体验</sub>
+        </a>
+      </th>
+      <th align="center" style="width: 80px;">
+        <a href="https://ofox.ai/zh?utm_source=github&utm_medium=hellogithub&utm_campaign=sponsor">
+          <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/0foxai.png" width="60px"><br>
+          <sub>OfoxAI</sub><br>
+          <sub>100+ 模型官方直连不掉线</sub>
         </a>
       </th>
     </tr>

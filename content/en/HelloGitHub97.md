@@ -29,7 +29,7 @@ Click the **「Table of Contents」** icon at the top-right corner to open the n
 
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img3/master/hellogithub/97/600246354.png' style="max-width:80%; max-height=80%;"></img></p>
 
-5、[UniGetUI](https://hellogithub.com/en/periodical/statistics/click?target=https://github.com/marticliment/UniGetUI)：User Interface for Windows Package Manager. This project is a user interface designed for commonly used command-line package management tools for Windows, such as Winget, Scoop, Pip, NPM, .NET Tool, and so on. It offers a friendly interface, aesthetically pleasing design, and supports Chinese language, allowing you to easily download, install, update, and uninstall any software published on the package manager as well as other daily applications like browsers and PDF readers.
+5、[UniGetUI](https://hellogithub.com/en/periodical/statistics/click?target=https://github.com/Devolutions/UniGetUI)：User Interface for Windows Package Manager. This project is a user interface designed for commonly used command-line package management tools for Windows, such as Winget, Scoop, Pip, NPM, .NET Tool, and so on. It offers a friendly interface, aesthetically pleasing design, and supports Chinese language, allowing you to easily download, install, update, and uninstall any software published on the package manager as well as other daily applications like browsers and PDF readers.
 
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img3/master/hellogithub/97/377163326.png' style="max-width:80%; max-height=80%;"></img></p>
 
@@ -311,6 +311,13 @@ docker pull bitnami/APP:[TAG]
           <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/qiniu.jpg" width="60px"><br>
           <sub>七牛云</sub><br>
           <sub>百万 Token 免费体验</sub>
+        </a>
+      </th>
+      <th align="center" style="width: 80px;">
+        <a href="https://ofox.ai/zh?utm_source=github&utm_medium=hellogithub&utm_campaign=sponsor">
+          <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/0foxai.png" width="60px"><br>
+          <sub>OfoxAI</sub><br>
+          <sub>100+ 模型官方直连不掉线</sub>
         </a>
       </th>
     </tr>

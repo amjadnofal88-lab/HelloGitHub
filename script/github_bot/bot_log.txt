@@ -1,0 +1,4 @@
+root 2026-06-06 22:50:14,948 github_bot.py[line:86] ERROR 请求 event api 失败：403
+Bot 2026-06-06 22:50:14,950 github_bot.py[line:155] WARNING 获取：user1/repo 项目星数失败——network error
+root 2026-06-06 22:51:28,840 github_bot.py[line:86] ERROR 请求 event api 失败：403
+Bot 2026-06-06 22:51:28,842 github_bot.py[line:155] WARNING 获取：user1/repo 项目星数失败——network error

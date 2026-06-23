@@ -81,7 +81,7 @@ Click the **「Table of Contents」** icon at the top-right corner to open the n
 }
 ```
 
-16、[motia](https://hellogithub.com/en/periodical/statistics/click?target=https://github.com/MotiaDev/motia)：Ending the Fragmentation of Backend Frameworks.This is a one-stop backend framework that integrates capabilities such as APIs, event-driven, timed tasks, real-time data streams, and AI agents. It supports mixed development in multiple languages such as TypeScript and Python. It has built-in state management, structured logging, end-to-end link tracking, and a visual debugger, and supports functions such as flowcharts, log streams, and real-time testing.
+16、[iii](https://hellogithub.com/en/periodical/statistics/click?target=https://github.com/iii-hq/iii)：Ending the Fragmentation of Backend Frameworks.This is a one-stop backend framework that integrates capabilities such as APIs, event-driven, timed tasks, real-time data streams, and AI agents. It supports mixed development in multiple languages such as TypeScript and Python. It has built-in state management, structured logging, end-to-end link tracking, and a visual debugger, and supports functions such as flowcharts, log streams, and real-time testing.
 
 <p align="center"><img src='https://raw.githubusercontent.com/521xueweihan/img4/master/hellogithub/118/911303109.png' style="max-width:80%; max-height=80%;"></img></p>
 
@@ -243,6 +243,13 @@ if slimmed_model:
           <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/qiniu.jpg" width="60px"><br>
           <sub>七牛云</sub><br>
           <sub>百万 Token 免费体验</sub>
+        </a>
+      </th>
+      <th align="center" style="width: 80px;">
+        <a href="https://ofox.ai/zh?utm_source=github&utm_medium=hellogithub&utm_campaign=sponsor">
+          <img src="https://raw.githubusercontent.com/521xueweihan/img_logo/master/logo/0foxai.png" width="60px"><br>
+          <sub>OfoxAI</sub><br>
+          <sub>100+ 模型官方直连不掉线</sub>
         </a>
       </th>
     </tr>

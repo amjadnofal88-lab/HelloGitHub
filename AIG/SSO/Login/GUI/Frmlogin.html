@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIG SSO Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .login-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .login-header .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #003087;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        .login-header .subtitle {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #111827;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            border-color: #003087;
+            box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 11px;
+            background-color: #003087;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-login:hover {
+            background-color: #002070;
+        }
+
+        .btn-login:active {
+            background-color: #001555;
+        }
+
+        .form-footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .error-message {
+            display: none;
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">AIG</div>
+            <div class="subtitle">Single Sign-On Portal</div>
+        </div>
+        <form id="loginForm" action="#" method="post" onsubmit="handleLogin(event)" novalidate>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" autocomplete="username" aria-describedby="usernameError" />
+                <span class="error-message" id="usernameError" role="alert" aria-live="polite">Please enter your username.</span>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" aria-describedby="passwordError" />
+                <span class="error-message" id="passwordError" role="alert" aria-live="polite">Please enter your password.</span>
+            </div>
+            <button type="submit" class="btn-login">Sign In</button>
+        </form>
+        <div class="form-footer">
+            &copy; AIG &mdash; Secure SSO Login
+        </div>
+    </div>
+
+    <script>
+        function handleLogin(event) {
+            event.preventDefault();
+
+            var username = document.getElementById('username').value.trim();
+            var password = document.getElementById('password').value.trim();
+            var usernameError = document.getElementById('usernameError');
+            var passwordError = document.getElementById('passwordError');
+            var valid = true;
+
+            usernameError.style.display = 'none';
+            passwordError.style.display = 'none';
+
+            if (!username) {
+                usernameError.style.display = 'block';
+                valid = false;
+            }
+
+            if (!password) {
+                passwordError.style.display = 'block';
+                valid = false;
+            }
+
+            if (valid) {
+                document.getElementById('loginForm').submit();
+            }
+        }
+    </script>
+</body>
+</html>
