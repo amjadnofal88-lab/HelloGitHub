@@ -29,12 +29,13 @@ logger = logging.getLogger('AccountStatement')
 # GitHub API base URL
 GITHUB_API = 'https://api.github.com'
 
-# Optional GitHub credentials (increases rate limit from 60 to 5000 req/hr).
-# Use a Personal Access Token (PAT) in the 'token' field.
-ACCOUNT = {
-    'username': '',
-    'token': ''
-}
+# Optional GitHub Personal Access Token read from the environment variable
+# GITHUB_TOKEN.  Setting this increases the API rate limit from 60 to
+# 5000 requests per hour.
+_GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', '')
+
+# Timeout (in seconds) for every outbound HTTP request
+_REQUEST_TIMEOUT = 30
 
 # Number of top repositories to include in the statement
 TOP_REPOS = 10
@@ -105,17 +106,31 @@ HTML_TEMPLATE = """\
 
 def _auth_headers():
     """Return authentication headers if a token is configured, otherwise empty dict."""
-    if ACCOUNT['token']:
-        return {'Authorization': 'token {}'.format(ACCOUNT['token'])}
+    if _GITHUB_TOKEN:
+        return {'Authorization': 'token {}'.format(_GITHUB_TOKEN)}
     return {}
+
+
+def _get(url):
+    """Perform a GET request with auth headers and a timeout.
+
+    Returns the ``requests.Response`` object, or raises on connection errors.
+    """
+    return requests.get(url, headers=_auth_headers(), timeout=_REQUEST_TIMEOUT)
 
 
 def get_user_profile(username):
     """Fetch a GitHub user's public profile."""
     url = '{}/users/{}'.format(GITHUB_API, username)
-    response = requests.get(url, headers=_auth_headers())
+    response = _get(url)
     if response.status_code == 200:
         return response.json()
+    elif response.status_code in (403, 429):
+        logger.error('Rate limit exceeded while fetching profile for %s (HTTP %s)',
+                     username, response.status_code)
+        print('ERROR: GitHub API rate limit exceeded. Set the GITHUB_TOKEN environment '
+              'variable to increase the limit from 60 to 5000 requests per hour.')
+        return None
     else:
         logger.error('Failed to fetch profile for %s: %s', username, response.status_code)
         return None
@@ -129,7 +144,13 @@ def get_user_repos(username):
     while True:
         url = '{}/users/{}/repos?per_page={}&page={}'.format(
             GITHUB_API, username, per_page, page)
-        response = requests.get(url, headers=_auth_headers())
+        response = _get(url)
+        if response.status_code in (403, 429):
+            logger.error('Rate limit exceeded while fetching repos for %s (HTTP %s)',
+                         username, response.status_code)
+            print('ERROR: GitHub API rate limit exceeded. Set the GITHUB_TOKEN environment '
+                  'variable to increase the limit from 60 to 5000 requests per hour.')
+            break
         if response.status_code != 200:
             logger.error('Failed to fetch repos for %s (page %d): %s',
                          username, page, response.status_code)
@@ -149,9 +170,13 @@ def get_user_repos(username):
 def get_user_events(username):
     """Fetch recent public events for a user."""
     url = '{}/users/{}/events/public?per_page={}'.format(GITHUB_API, username, RECENT_EVENTS)
-    response = requests.get(url, headers=_auth_headers())
+    response = _get(url)
     if response.status_code == 200:
         return response.json()
+    elif response.status_code in (403, 429):
+        logger.error('Rate limit exceeded while fetching events for %s (HTTP %s)',
+                     username, response.status_code)
+        return []
     else:
         logger.error('Failed to fetch events for %s: %s', username, response.status_code)
         return []
@@ -233,7 +258,7 @@ def generate_statement(username, output_dir=None):
 
     html = HTML_TEMPLATE.format(
         username=html_module.escape(username),
-        generated_at=generated_at,
+        generated_at=html_module.escape(generated_at),
         avatar_url=html_module.escape(profile.get('avatar_url', '')),
         html_url=html_module.escape(profile.get('html_url', '')),
         name=html_module.escape(profile.get('name') or username),

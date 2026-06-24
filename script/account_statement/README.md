@@ -18,12 +18,9 @@
 
 2. **（可选）配置 GitHub 认证**（提高 API 速率限制，从 60 次/小时 提升至 5000 次/小时）：
 
-   编辑 `account_statement.py`，填写账号信息：
-   ```python
-   ACCOUNT = {
-       'username': 'your_github_username',
-       'token': 'your_personal_access_token'   # GitHub Personal Access Token
-   }
+   通过环境变量传入 Personal Access Token：
+   ```bash
+   export GITHUB_TOKEN=your_personal_access_token
    ```
 
 3. **运行脚本**：
