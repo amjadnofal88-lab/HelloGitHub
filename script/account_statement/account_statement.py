@@ -15,6 +15,8 @@ import os
 import logging
 import datetime
 import argparse
+import shutil
+from pathlib import Path
 
 import requests
 
@@ -233,12 +235,33 @@ def build_events_rows(events):
     return '\n    '.join(rows)
 
 
-def generate_statement(username, output_dir=None):
+def copy_to_icloud(source_path, icloud_folder='GitHub Statements'):
+    """Copy a generated statement file to iCloud Drive.
+
+    :param source_path: Path to the local file to copy (str or Path).
+    :param icloud_folder: Sub-folder name inside iCloud Drive (default: 'GitHub Statements').
+    :return: Destination Path on success, None if iCloud Drive is not available.
+    """
+    icloud_drive = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'
+    if not icloud_drive.exists():
+        print('WARNING: iCloud Drive not found at {}. Skipping iCloud export.'.format(icloud_drive))
+        return None
+
+    destination = icloud_drive / icloud_folder / Path(source_path).name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(source_path, destination)
+    print('Copied to iCloud Drive: {}'.format(destination))
+    return destination
+
+
+def generate_statement(username, output_dir=None, icloud_folder=None):
     """
     Generate an HTML account statement for the given GitHub username.
 
     :param username: GitHub username
     :param output_dir: Directory to write the HTML file. Defaults to script directory.
+    :param icloud_folder: If set, also copy the generated file to this iCloud Drive
+        sub-folder (e.g. 'GitHub Statements'). Pass None to skip iCloud export.
     :return: Path to the generated HTML file, or None on failure.
     """
     print('Fetching data for user: {}'.format(username))
@@ -280,6 +303,10 @@ def generate_statement(username, output_dir=None):
         f.write(html)
 
     print('Statement saved to: {}'.format(output_path))
+
+    if icloud_folder is not None:
+        copy_to_icloud(output_path, icloud_folder=icloud_folder)
+
     return output_path
 
 
@@ -297,10 +324,23 @@ def main():
         default=None,
         help='Directory to write the HTML statement files (default: script directory).'
     )
+    parser.add_argument(
+        '--icloud',
+        action='store_true',
+        default=False,
+        help='Copy each generated statement to iCloud Drive (macOS only).'
+    )
+    parser.add_argument(
+        '--icloud-folder',
+        default='GitHub Statements',
+        help='Sub-folder inside iCloud Drive to copy statements into '
+             '(default: "GitHub Statements"). Only used when --icloud is set.'
+    )
     args = parser.parse_args()
 
+    icloud_folder = args.icloud_folder if args.icloud else None
     for username in args.usernames:
-        generate_statement(username, output_dir=args.output_dir)
+        generate_statement(username, output_dir=args.output_dir, icloud_folder=icloud_folder)
 
 
 if __name__ == '__main__':

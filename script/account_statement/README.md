@@ -40,6 +40,16 @@
    python account_statement.py <username> --output-dir /path/to/output
    ```
 
+   将报告同时导出到 iCloud Drive（macOS 专属）：
+   ```bash
+   python account_statement.py <username> --icloud
+   ```
+
+   自定义 iCloud Drive 子文件夹名称（默认为 `GitHub Statements`）：
+   ```bash
+   python account_statement.py <username> --icloud --icloud-folder "My Reports"
+   ```
+
    示例：
    ```bash
    python account_statement.py torvalds gvanrossum --output-dir /tmp/statements
@@ -54,6 +64,8 @@
 |------|------|
 | `usernames` | 一个或多个 GitHub 用户名（空格分隔） |
 | `--output-dir` | 输出目录（可选，默认为脚本所在目录） |
+| `--icloud` | 将生成的报告额外复制到 iCloud Drive（仅 macOS） |
+| `--icloud-folder` | iCloud Drive 子文件夹名称（默认：`GitHub Statements`，仅与 `--icloud` 搭配使用） |
 
 ## 配置项
 
