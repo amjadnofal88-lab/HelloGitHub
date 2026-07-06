@@ -293,7 +293,7 @@ def generate_statement(username, output_dir=None):
 def _xl_header_row(ws, headers):
     """Write a bold, shaded header row to *ws* and return the next row index."""
     header_font = Font(bold=True)
-    header_fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
+    header_fill = PatternFill(fill_type='solid', start_color='F2F2F2', end_color='F2F2F2')
     for col, text in enumerate(headers, start=1):
         cell = ws.cell(row=1, column=col, value=text)
         cell.font = header_font
