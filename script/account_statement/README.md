@@ -67,6 +67,13 @@
 | `--icloud` | 将生成的报告额外复制到 iCloud Drive（仅 macOS） |
 | `--icloud-folder` | iCloud Drive 子文件夹名称（默认：`GitHub Statements`，仅与 `--icloud` 搭配使用） |
 
+## 环境变量
+
+| 变量 | 说明 |
+|------|------|
+| `GITHUB_TOKEN` | GitHub Personal Access Token，用于提高 API 速率限制 |
+| `ICLOUD_DRIVE_PATH` | 覆盖默认的 iCloud Drive 路径（默认：`~/Library/Mobile Documents/com~apple~CloudDocs`） |
+
 ## 配置项
 
 可在 `account_statement.py` 中调整以下参数：

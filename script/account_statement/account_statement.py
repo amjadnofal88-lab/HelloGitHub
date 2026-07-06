@@ -240,16 +240,26 @@ def copy_to_icloud(source_path, icloud_folder='GitHub Statements'):
 
     :param source_path: Path to the local file to copy (str or Path).
     :param icloud_folder: Sub-folder name inside iCloud Drive (default: 'GitHub Statements').
-    :return: Destination Path on success, None if iCloud Drive is not available.
+    :return: Destination Path on success, None if iCloud Drive is not available or copy fails.
     """
-    icloud_drive = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'
+    icloud_drive = Path(os.environ.get(
+        'ICLOUD_DRIVE_PATH',
+        str(Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'),
+    ))
     if not icloud_drive.exists():
+        logger.warning('iCloud Drive not found at %s. Skipping iCloud export.', icloud_drive)
         print('WARNING: iCloud Drive not found at {}. Skipping iCloud export.'.format(icloud_drive))
         return None
 
     destination = icloud_drive / icloud_folder / Path(source_path).name
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(source_path, destination)
+    try:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(source_path, destination)
+    except OSError as exc:
+        logger.error('Failed to copy %s to iCloud Drive: %s', source_path, exc)
+        print('ERROR: Could not copy to iCloud Drive: {}'.format(exc))
+        return None
+
     print('Copied to iCloud Drive: {}'.format(destination))
     return destination
 
