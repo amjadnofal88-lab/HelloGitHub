@@ -16,6 +16,9 @@ import logging
 import datetime
 import argparse
 
+import shutil
+from pathlib import Path
+
 import requests
 
 logging.basicConfig(
@@ -283,6 +286,23 @@ def generate_statement(username, output_dir=None):
     return output_path
 
 
+def export_to_icloud(source_path):
+    """Copy *source_path* to the iCloud Drive 'Ahleia Reports' folder.
+
+    Does nothing (with a warning) when iCloud Drive is not available on the
+    current machine (e.g. non-macOS environments).
+    """
+    icloud_drive = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'
+    if not icloud_drive.exists():
+        print('WARNING: iCloud Drive not found at {}. Skipping iCloud export.'.format(icloud_drive))
+        return
+
+    destination = icloud_drive / 'Ahleia Reports' / Path(source_path).name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(source_path, destination)
+    print('iCloud export saved to: {}'.format(destination))
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate GitHub account statements for one or more users.'
@@ -297,10 +317,18 @@ def main():
         default=None,
         help='Directory to write the HTML statement files (default: script directory).'
     )
+    parser.add_argument(
+        '--icloud',
+        action='store_true',
+        help='Copy the generated HTML file(s) to iCloud Drive (~/Library/Mobile Documents/'
+             'com~apple~CloudDocs/Ahleia Reports/).'
+    )
     args = parser.parse_args()
 
     for username in args.usernames:
-        generate_statement(username, output_dir=args.output_dir)
+        output_path = generate_statement(username, output_dir=args.output_dir)
+        if args.icloud and output_path:
+            export_to_icloud(output_path)
 
 
 if __name__ == '__main__':

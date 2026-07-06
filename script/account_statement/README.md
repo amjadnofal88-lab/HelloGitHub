@@ -40,9 +40,16 @@
    python account_statement.py <username> --output-dir /path/to/output
    ```
 
+   导出到 iCloud Drive（仅 macOS）：
+   ```bash
+   python account_statement.py <username> --icloud
+   ```
+   文件将复制到 `~/Library/Mobile Documents/com~apple~CloudDocs/Ahleia Reports/`。
+
    示例：
    ```bash
    python account_statement.py torvalds gvanrossum --output-dir /tmp/statements
+   python account_statement.py torvalds --icloud
    ```
 
 4. 生成的 HTML 文件保存在脚本所在目录（或 `--output-dir` 指定的目录），文件名格式为：
@@ -54,6 +61,7 @@
 |------|------|
 | `usernames` | 一个或多个 GitHub 用户名（空格分隔） |
 | `--output-dir` | 输出目录（可选，默认为脚本所在目录） |
+| `--icloud` | 将生成的 HTML 文件额外复制到 iCloud Drive 的 `Ahleia Reports` 文件夹（仅 macOS） |
 
 ## 配置项
 
