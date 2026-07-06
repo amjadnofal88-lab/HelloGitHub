@@ -18,6 +18,8 @@ import argparse
 import shutil
 from pathlib import Path
 
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
 import requests
 
 logging.basicConfig(
@@ -264,7 +266,90 @@ def copy_to_icloud(source_path, icloud_folder='GitHub Statements'):
     return destination
 
 
-def generate_statement(username, output_dir=None, icloud_folder=None):
+def _excel_header_row(ws, headers):
+    """Write a bold, grey-filled header row to *ws* and return the row number used."""
+    header_font = Font(bold=True)
+    header_fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
+    header_align = Alignment(horizontal='center')
+    ws.append(headers)
+    for cell in ws[ws.max_row]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+
+
+def generate_excel_statement(username, profile, repos, events, output_dir=None):
+    """Write a .xlsx workbook with three sheets: Profile, Repositories, Recent Activity.
+
+    :param username: GitHub username (used in the output filename).
+    :param profile: Dict returned by :func:`get_user_profile`.
+    :param repos: List of repo dicts returned by :func:`get_user_repos`.
+    :param events: List of event dicts returned by :func:`get_user_events`.
+    :param output_dir: Directory to write the file. Defaults to script directory.
+    :return: Path to the generated .xlsx file.
+    """
+    if output_dir is None:
+        output_dir = os.path.dirname(os.path.abspath(__file__))
+
+    wb = openpyxl.Workbook()
+
+    # ── Sheet 1: Profile ──────────────────────────────────────────────────────
+    ws_profile = wb.active
+    ws_profile.title = 'Profile'
+    _excel_header_row(ws_profile, ['Field', 'Value'])
+    fields = [
+        ('Username', profile.get('login', username)),
+        ('Name', profile.get('name') or ''),
+        ('Bio', profile.get('bio') or ''),
+        ('Followers', profile.get('followers', 0)),
+        ('Following', profile.get('following', 0)),
+        ('Public Repos', profile.get('public_repos', 0)),
+        ('Location', profile.get('location') or ''),
+        ('Company', profile.get('company') or ''),
+        ('Profile URL', profile.get('html_url', '')),
+        ('Avatar URL', profile.get('avatar_url', '')),
+        ('Generated At', datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')),
+    ]
+    for field, value in fields:
+        ws_profile.append([field, value])
+    ws_profile.column_dimensions['A'].width = 18
+    ws_profile.column_dimensions['B'].width = 60
+
+    # ── Sheet 2: Repositories ─────────────────────────────────────────────────
+    ws_repos = wb.create_sheet('Repositories')
+    _excel_header_row(ws_repos, ['Repository', 'URL', 'Description', 'Language', 'Stars', 'Forks', 'Updated'])
+    for repo in repos:
+        ws_repos.append([
+            repo.get('name', ''),
+            repo.get('html_url', ''),
+            repo.get('description') or '',
+            repo.get('language') or '',
+            repo.get('stargazers_count', 0),
+            repo.get('forks_count', 0),
+            repo.get('updated_at', '')[:10],
+        ])
+    for col, width in zip('ABCDEFG', [30, 50, 50, 15, 8, 8, 12]):
+        ws_repos.column_dimensions[col].width = width
+
+    # ── Sheet 3: Recent Activity ──────────────────────────────────────────────
+    ws_events = wb.create_sheet('Recent Activity')
+    _excel_header_row(ws_events, ['Date', 'Event Type', 'Repository', 'Repository URL'])
+    for event in events:
+        created_at = event.get('created_at', '')[:19].replace('T', ' ')
+        event_type = event.get('type', '')
+        repo_name = event.get('repo', {}).get('name', '')
+        repo_url = 'https://github.com/' + repo_name if repo_name else ''
+        ws_events.append([created_at, event_type, repo_name, repo_url])
+    for col, width in zip('ABCD', [20, 25, 40, 55]):
+        ws_events.column_dimensions[col].width = width
+
+    output_path = os.path.join(output_dir, 'statement_{}.xlsx'.format(username))
+    wb.save(output_path)
+    print('Excel statement saved to: {}'.format(output_path))
+    return output_path
+
+
+def generate_statement(username, output_dir=None, icloud_folder=None, excel=False):
     """
     Generate an HTML account statement for the given GitHub username.
 
@@ -272,6 +357,7 @@ def generate_statement(username, output_dir=None, icloud_folder=None):
     :param output_dir: Directory to write the HTML file. Defaults to script directory.
     :param icloud_folder: If set, also copy the generated file to this iCloud Drive
         sub-folder (e.g. 'GitHub Statements'). Pass None to skip iCloud export.
+    :param excel: If True, also write a .xlsx workbook alongside the HTML file.
     :return: Path to the generated HTML file, or None on failure.
     """
     print('Fetching data for user: {}'.format(username))
@@ -314,6 +400,9 @@ def generate_statement(username, output_dir=None, icloud_folder=None):
 
     print('Statement saved to: {}'.format(output_path))
 
+    if excel:
+        generate_excel_statement(username, profile, repos, events, output_dir=output_dir)
+
     if icloud_folder is not None:
         copy_to_icloud(output_path, icloud_folder=icloud_folder)
 
@@ -346,11 +435,18 @@ def main():
         help='Sub-folder inside iCloud Drive to copy statements into '
              '(default: "GitHub Statements"). Only used when --icloud is set.'
     )
+    parser.add_argument(
+        '--excel',
+        action='store_true',
+        default=False,
+        help='Also generate a .xlsx workbook with Profile, Repositories, and Recent Activity sheets.'
+    )
     args = parser.parse_args()
 
     icloud_folder = args.icloud_folder if args.icloud else None
     for username in args.usernames:
-        generate_statement(username, output_dir=args.output_dir, icloud_folder=icloud_folder)
+        generate_statement(username, output_dir=args.output_dir,
+                           icloud_folder=icloud_folder, excel=args.excel)
 
 
 if __name__ == '__main__':

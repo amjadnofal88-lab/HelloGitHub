@@ -8,6 +8,7 @@
 - 最近公开活动事件（默认展示最近 20 条）
 
 报告以 HTML 文件形式保存，支持同时为主账户和备用账户生成报告。
+使用 `--excel` 标志可额外生成一个包含三个工作表的 `.xlsx` 文件。
 
 ## 运行步骤
 
@@ -50,13 +51,23 @@
    python account_statement.py <username> --icloud --icloud-folder "My Reports"
    ```
 
+   额外生成 Excel (.xlsx) 报告（包含 Profile、Repositories、Recent Activity 三个工作表）：
+   ```bash
+   python account_statement.py <username> --excel
+   ```
+
+   同时生成 HTML 和 Excel 并导出到 iCloud Drive：
+   ```bash
+   python account_statement.py <username> --excel --icloud
+   ```
+
    示例：
    ```bash
    python account_statement.py torvalds gvanrossum --output-dir /tmp/statements
    ```
 
-4. 生成的 HTML 文件保存在脚本所在目录（或 `--output-dir` 指定的目录），文件名格式为：
-   `statement_<username>.html`
+4. 生成的 HTML 文件（以及可选的 `.xlsx` 文件）保存在脚本所在目录（或 `--output-dir` 指定的目录），文件名格式为：
+   `statement_<username>.html` / `statement_<username>.xlsx`
 
 ## 参数说明
 
@@ -66,6 +77,7 @@
 | `--output-dir` | 输出目录（可选，默认为脚本所在目录） |
 | `--icloud` | 将生成的报告额外复制到 iCloud Drive（仅 macOS） |
 | `--icloud-folder` | iCloud Drive 子文件夹名称（默认：`GitHub Statements`，仅与 `--icloud` 搭配使用） |
+| `--excel` | 额外生成 `.xlsx` 工作簿（包含 Profile、Repositories、Recent Activity 三个工作表） |
 
 ## 环境变量
 
