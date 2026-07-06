@@ -15,7 +15,7 @@ import os
 import logging
 import datetime
 import argparse
-
+import platform
 import shutil
 from pathlib import Path
 
@@ -289,17 +289,22 @@ def generate_statement(username, output_dir=None):
 def export_to_icloud(source_path):
     """Copy *source_path* to the iCloud Drive 'Ahleia Reports' folder.
 
-    Does nothing (with a warning) when iCloud Drive is not available on the
-    current machine (e.g. non-macOS environments).
+    Does nothing (with a warning) when not running on macOS or when iCloud
+    Drive is not available on the current machine.
     """
+    if platform.system() != 'Darwin':
+        logger.warning('iCloud export is only supported on macOS. Skipping.')
+        return
+
     icloud_drive = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'
     if not icloud_drive.exists():
-        print('WARNING: iCloud Drive not found at {}. Skipping iCloud export.'.format(icloud_drive))
+        logger.warning('iCloud Drive not found at %s. Skipping iCloud export.', icloud_drive)
         return
 
     destination = icloud_drive / 'Ahleia Reports' / Path(source_path).name
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(source_path, destination)
+    logger.info('iCloud export saved to: %s', destination)
     print('iCloud export saved to: {}'.format(destination))
 
 
