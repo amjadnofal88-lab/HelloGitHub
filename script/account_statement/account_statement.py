@@ -326,7 +326,7 @@ def generate_excel_statement(username, profile, repos, events, output_dir=None):
             repo.get('language') or '',
             repo.get('stargazers_count', 0),
             repo.get('forks_count', 0),
-            repo.get('updated_at', '')[:10],
+            repo.get('updated_at', '')[:10] or '',
         ])
     for col, width in zip('ABCDEFG', [30, 50, 50, 15, 8, 8, 12]):
         ws_repos.column_dimensions[col].width = width
@@ -335,7 +335,7 @@ def generate_excel_statement(username, profile, repos, events, output_dir=None):
     ws_events = wb.create_sheet('Recent Activity')
     _excel_header_row(ws_events, ['Date', 'Event Type', 'Repository', 'Repository URL'])
     for event in events:
-        created_at = event.get('created_at', '')[:19].replace('T', ' ')
+        created_at = (event.get('created_at') or '')[:19].replace('T', ' ')
         event_type = event.get('type', '')
         repo_name = event.get('repo', {}).get('name', '')
         repo_url = 'https://github.com/' + repo_name if repo_name else ''
