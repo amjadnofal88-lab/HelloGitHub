@@ -133,7 +133,19 @@ def build(df, contacts=None, days=UPCOMING_DAYS, today=None, cc='970'):
     return df.sort_values('DAYS_LEFT')
 
 
-def wa_message(row):
+def parse_cc_arg(value):
+    """يفصل كود الدولة عن رقم الوسيط في قيمة --cc.
+
+    إذا كانت القيمة رقماً كاملاً (> 4 أرقام)، تُعاد أول 3 أرقام كود دولة
+    والرقم الكامل كرقم وسيط. وإلا تُعاد القيمة كود دولة فقط.
+    """
+    digits = re.sub(r'\D', '', value)
+    if len(digits) > 4:
+        return digits[:3], digits
+    return digits, None
+
+
+def wa_message(row, broker_phone=BROKER_PHONE):
     d = int(row['DAYS_LEFT'])
     when = ('انتهت بتاريخ {:%d-%m-%Y} (متأخرة {} يوم)'.format(row['EXPIRY'], abs(d))
             if d < 0
@@ -147,7 +159,7 @@ def wa_message(row):
             'يسعدنا تجديدها لك — تواصل معنا على {}.\n'
             '{}'.format(
                 row['BENEFICIARY'], row['DOCUMENT_NO'], veh_txt, when,
-                BROKER_PHONE, BROKER_NAME))
+                broker_phone, BROKER_NAME))
 
 
 def sheet(wb, title, rows, headers, widths, money_cols=(), color_by_status=True):
@@ -200,7 +212,7 @@ def rows_of(d):
     return out
 
 
-def build_workbook(df, out_path, days=UPCOMING_DAYS):
+def build_workbook(df, out_path, days=UPCOMING_DAYS, broker_phone=BROKER_PHONE):
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
 
@@ -250,7 +262,7 @@ def build_workbook(df, out_path, days=UPCOMING_DAYS):
     # شيت واتساب — جاهز للبوت
     wa_rows = [[r['BENEFICIARY'], r['PHONE'], r['DOCUMENT_NO'],
                 r['EXPIRY'].strftime('%d-%m-%Y'), int(r['DAYS_LEFT']),
-                r['STATUS'], wa_message(r)] for _, r in action.iterrows()]
+                r['STATUS'], wa_message(r, broker_phone)] for _, r in action.iterrows()]
     sheet(wb, 'واتساب', wa_rows,
           ['الاسم', 'الجوال', 'رقم البوليصة', 'تاريخ الانتهاء',
            'الأيام المتبقية', 'الحالة', 'نص الرسالة'],
@@ -294,10 +306,11 @@ def main():
 
     df = load_receivables(a.receivables)
     contacts = pd.read_excel(a.contacts) if a.contacts else None
-    df = build(df, contacts=contacts, days=a.days, cc=a.cc)
+    cc, broker_phone = parse_cc_arg(a.cc)
+    df = build(df, contacts=contacts, days=a.days, cc=cc)
 
     out = a.output or 'renewals_{:%Y%m%d}.xlsx'.format(dt.date.today())
-    build_workbook(df, out, days=a.days)
+    build_workbook(df, out, days=a.days, broker_phone=broker_phone or BROKER_PHONE)
 
     c = df['STATUS'].value_counts()
     print('Saved: {}'.format(out))
