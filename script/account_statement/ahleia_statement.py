@@ -7,8 +7,11 @@ ahleia_statement.py — كشف حساب الأهلية إلى إكسل
 
 Usage:
     python ahleia_statement.py statement.pdf --receivables receivables.xlsx -o output.xlsx
+    python ahleia_statement.py statement.pdf --icloud --icloud-folder "Ahleia Statements"
 """
+import os
 import re
+import shutil
 import argparse
 import subprocess
 from pathlib import Path
@@ -270,6 +273,33 @@ def build_workbook(info, rows, receivables_df, out_path):
     return out_path
 
 
+def copy_to_icloud(source_path, icloud_folder='Ahleia Statements'):
+    """Copy a generated file to iCloud Drive.
+
+    :param source_path: Path to the local file to copy (str or Path).
+    :param icloud_folder: Sub-folder name inside iCloud Drive (default: 'Ahleia Statements').
+    :return: Destination Path on success, None if iCloud Drive is not available or copy fails.
+    """
+    icloud_drive = Path(os.environ.get(
+        'ICLOUD_DRIVE_PATH',
+        os.path.expanduser('~/Library/Mobile Documents/com~apple~CloudDocs'),
+    ))
+    if not icloud_drive.exists():
+        print('WARNING: iCloud Drive not found at {}. Skipping iCloud export.'.format(icloud_drive))
+        return None
+
+    destination = icloud_drive / icloud_folder / Path(source_path).name
+    try:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(source_path, destination)
+    except OSError as exc:
+        print('ERROR: Could not copy to iCloud Drive: {}'.format(exc))
+        return None
+
+    print('Copied to iCloud Drive: {}'.format(destination))
+    return destination
+
+
 def main():
     p = argparse.ArgumentParser(
         description='Generate an Excel workbook from an AHLEIA/ESKA PDF statement.'
@@ -279,6 +309,11 @@ def main():
                    help='Path to a Crystal receivables .xls/.xlsx file.')
     p.add_argument('-o', '--output', default=None,
                    help='Output .xlsx path (default: ahleia_<account>.xlsx).')
+    p.add_argument('--icloud', action='store_true', default=False,
+                   help='Copy the generated workbook to iCloud Drive (macOS only).')
+    p.add_argument('--icloud-folder', default='Ahleia Statements',
+                   help='Sub-folder inside iCloud Drive to copy the file into '
+                        '(default: "Ahleia Statements"). Only used when --icloud is set.')
     a = p.parse_args()
 
     info, rows = parse_statement(a.pdf)
@@ -299,6 +334,9 @@ def main():
         info.get('account', 'statement').replace('-', ''))
     build_workbook(info, rows, rec, out)
     print('Saved: {}'.format(out))
+
+    if a.icloud:
+        copy_to_icloud(out, icloud_folder=a.icloud_folder)
 
 
 if __name__ == '__main__':
