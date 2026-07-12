@@ -153,6 +153,7 @@ def build_workbook(info, rows, receivables_df, out_path):
     wb.remove(wb.active)
 
     n = len(rows)
+    final_balance = rows[-1]['balance'] if rows else 0
     tx_headers = ['التاريخ', 'رقم القيد', 'نوع الحركة', 'تاريخ الاستحقاق',
                   'البيان', 'المبلغ', 'العملة', 'مدين', 'دائن', 'الرصيد',
                   'رقم الشيك', 'رقم البوليصة']
@@ -245,7 +246,7 @@ def build_workbook(info, rows, receivables_df, out_path):
     put(8, 'إجمالي المدين', '=SUM(الحركات!H2:H{})'.format(n + 1), MONEY_FMT, bold=True)
     put(9, 'إجمالي الدائن', '=SUM(الحركات!I2:I{})'.format(n + 1), MONEY_FMT, bold=True)
     put(10, 'الرصيد (مدين - دائن)', '=B8-B9', MONEY_FMT, bold=True)
-    put(11, 'الرصيد الختامي بالكشف', rows[-1]['balance'] if rows else 0, MONEY_FMT, bold=True)
+    put(11, 'الرصيد الختامي بالكشف', final_balance, MONEY_FMT, bold=True)
     put(13, 'عدد إشعارات المدين (بوالص)', '=COUNTIF(الحركات!C2:C{},"DebitNote")'.format(n + 1))
     put(14, 'عدد إشعارات الدائن', '=COUNTIF(الحركات!C2:C{},"CreditNote")'.format(n + 1))
     put(15, 'عدد سندات القبض', '=COUNTIF(الحركات!C2:C{},"ReceiptVoucher")'.format(n + 1))
@@ -282,6 +283,9 @@ def main():
 
     info, rows = parse_statement(a.pdf)
     rows = enrich(rows)
+    if not rows:
+        print('ERROR: No transaction rows parsed from the PDF. Aborting.')
+        return
     print('Parsed {} rows | account {} | final balance {:,.2f}'.format(
         len(rows), info.get('account'), rows[-1]['balance']))
 
