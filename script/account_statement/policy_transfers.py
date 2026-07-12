@@ -36,8 +36,8 @@ from openpyxl.utils import get_column_letter
 from ahleia_statement import parse_statement, enrich
 
 # ── إعدادات ──────────────────────────────────────────────────────────────
-IBAN = os.environ.get('BENEFICIARY_IBAN', 'PS72PALS048106681110013000000')
-BENEFICIARY = os.environ.get('BENEFICIARY_NAME', 'شركة البديل للخدمات العامة واللوجستية')
+IBAN = os.environ.get('BENEFICIARY_IBAN', 'CONFIGURE_BENEFICIARY_IBAN')
+BENEFICIARY = os.environ.get('BENEFICIARY_NAME', 'CONFIGURE_BENEFICIARY_NAME')
 CURRENCY = 'ILS'
 RATES = {'475151': Decimal('0.27'), '506322': Decimal('0.25')}
 DEFAULT_RATE = Decimal('0.25')
@@ -46,7 +46,7 @@ Q = Decimal('0.01')
 HDR_FILL = PatternFill(fill_type='solid', fgColor='1F4E78')
 HDR_FONT = Font(bold=True, color='FFFFFF', name='Arial', size=11)
 BODY = Font(name='Arial', size=10)
-MONEY = '#,##0.00;<a>Red</a>;-'
+MONEY = '#,##0.00;[Red]-#,##0.00;-'
 
 
 def money(x):
