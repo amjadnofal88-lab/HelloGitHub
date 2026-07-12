@@ -13,7 +13,8 @@ Usage:
     python renewals_report.py receivables.xls
     python renewals_report.py receivables.xls --contacts contacts.xlsx --days 60 -o renewals.xlsx
     python renewals_report.py receivables.xls --cc 972 --cloud
-    python renewals_report.py receivables.xls --icloud
+    python renewals_report.py receivables.xls --production
+    python renewals_report.py receivables.xls --cc 970593666668 --production --cloud
 """
 import os
 import re
@@ -218,7 +219,78 @@ def rows_of(d):
     return out
 
 
-def build_workbook(df, out_path, days=UPCOMING_DAYS, rejects=None):
+def add_production_sheets(wb, raw_df):
+    """يضيف ثلاثة أوراق لتقرير الإنتاج إلى المصنف:
+      • الإنتاج        — كل البوالص مرتبة بتاريخ الإصدار تنازلياً
+      • الإنتاج حسب الفرع — ملخص القسط وعدد البوالص لكل فرع
+      • الإنتاج الشهري  — ملخص شهري
+    يعمل على raw_df (قبل إزالة التكرارات) لإظهار كل الإصدارات.
+    """
+    df = raw_df.copy()
+    df['ISSUE'] = pd.to_datetime(df.get('ISSUE_DATE'), errors='coerce')
+    df['EXPIRY'] = pd.to_datetime(df.get('EXPIRY_DATE'), errors='coerce')
+    df = df.dropna(subset=['ISSUE'])
+    df = df.sort_values('ISSUE', ascending=False)
+
+    # ── شيت الإنتاج الكامل ─────────────────────────────────────────────
+    p_hdrs = ['تاريخ الإصدار', 'تاريخ الانتهاء', 'المؤمَّن له',
+              'رقم البوليصة', 'الفرع', 'نوع المركبة', 'الموديل',
+              'رقم اللوحة', 'القسط']
+    p_widths = [14, 14, 30, 24, 12, 14, 14, 12, 13]
+    p_rows = []
+    for _, r in df.iterrows():
+        p_rows.append([
+            r['ISSUE'].strftime('%d-%m-%Y'),
+            r['EXPIRY'].strftime('%d-%m-%Y') if pd.notna(r.get('EXPIRY')) else '',
+            r['BENEFICIARY'],
+            r['DOCUMENT_NO'],
+            r.get('CLASS', ''),
+            r.get('VEHICLE_TYPE', '') if pd.notna(r.get('VEHICLE_TYPE')) else '',
+            r.get('VEHICLE_MODEL', '') if pd.notna(r.get('VEHICLE_MODEL')) else '',
+            str(r.get('PLATE_NUMBER', '')) if pd.notna(r.get('PLATE_NUMBER')) else '',
+            float(r['NET_PREMIUM_LC']),
+        ])
+    sheet(wb, 'الإنتاج', p_rows, p_hdrs, p_widths, money_cols=(9,), color_by_status=False)
+
+    # ── شيت الإنتاج حسب الفرع ─────────────────────────────────────────
+    by_class = (df.groupby('CLASS', dropna=False)
+                  .agg(عدد_البوالص=('DOCUMENT_NO', 'count'),
+                       إجمالي_الأقساط=('NET_PREMIUM_LC', 'sum'))
+                  .reset_index()
+                  .sort_values('إجمالي_الأقساط', ascending=False))
+    cls_rows = [[r['CLASS'], int(r['عدد_البوالص']), float(r['إجمالي_الأقساط'])]
+                for _, r in by_class.iterrows()]
+    # صف الإجمالي
+    cls_rows.append(['الإجمالي', len(df), float(df['NET_PREMIUM_LC'].sum())])
+    ws_cls = sheet(wb, 'الإنتاج حسب الفرع', cls_rows,
+                   ['الفرع', 'عدد البوالص', 'إجمالي الأقساط'],
+                   [20, 16, 18], money_cols=(3,), color_by_status=False)
+    # تمييز صف الإجمالي
+    total_row = ws_cls.max_row
+    for c in ws_cls[total_row]:
+        c.font = Font(bold=True, name='Arial', size=10)
+        c.fill = PatternFill(fill_type='solid', fgColor='D9E1F2')
+
+    # ── شيت الإنتاج الشهري ────────────────────────────────────────────
+    df['شهر'] = df['ISSUE'].dt.to_period('M')
+    by_month = (df.groupby('شهر', dropna=False)
+                  .agg(عدد_البوالص=('DOCUMENT_NO', 'count'),
+                       إجمالي_الأقساط=('NET_PREMIUM_LC', 'sum'))
+                  .reset_index()
+                  .sort_values('شهر', ascending=False))
+    mo_rows = [[str(r['شهر']), int(r['عدد_البوالص']), float(r['إجمالي_الأقساط'])]
+               for _, r in by_month.iterrows()]
+    mo_rows.append(['الإجمالي', len(df), float(df['NET_PREMIUM_LC'].sum())])
+    ws_mo = sheet(wb, 'الإنتاج الشهري', mo_rows,
+                  ['الشهر', 'عدد البوالص', 'إجمالي الأقساط'],
+                  [14, 16, 18], money_cols=(3,), color_by_status=False)
+    total_row = ws_mo.max_row
+    for c in ws_mo[total_row]:
+        c.font = Font(bold=True, name='Arial', size=10)
+        c.fill = PatternFill(fill_type='solid', fgColor='D9E1F2')
+
+
+def build_workbook(df, out_path, days=UPCOMING_DAYS, rejects=None, raw_df=None):
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
 
@@ -289,6 +361,10 @@ def build_workbook(df, out_path, days=UPCOMING_DAYS, rejects=None):
                 c.font = BODY_FONT
             row[1].number_format = '@'
 
+    # أوراق تقرير الإنتاج (اختياري)
+    if raw_df is not None:
+        add_production_sheets(wb, raw_df)
+
     wb.save(out_path)
     return out_path
 
@@ -323,14 +399,17 @@ def main():
     p.add_argument('--icloud', '--cloud', dest='icloud', action='store_true',
                    help='نسخ الملف إلى iCloud Drive')
     p.add_argument('--icloud-folder', default=ICLOUD_FOLDER)
+    p.add_argument('--production', action='store_true',
+                   help='إضافة أوراق تقرير الإنتاج (الإنتاج / حسب الفرع / الشهري)')
     a = p.parse_args()
 
-    df = load_receivables(a.receivables)
+    raw_df = load_receivables(a.receivables)
     contacts = pd.read_excel(a.contacts) if a.contacts else None
-    df, rejects = build(df, contacts=contacts, days=a.days, cc=a.cc)
+    df, rejects = build(raw_df, contacts=contacts, days=a.days, cc=a.cc)
 
     out = a.output or f'renewals_{dt.date.today():%Y%m%d}.xlsx'
-    build_workbook(df, out, days=a.days, rejects=rejects)
+    build_workbook(df, out, days=a.days, rejects=rejects,
+                   raw_df=raw_df if a.production else None)
 
     c = df['STATUS'].value_counts()
     print(f"Saved: {out}")
