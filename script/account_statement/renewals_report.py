@@ -12,6 +12,7 @@ renewals_report.py — كشف التجديدات
 Usage:
     python renewals_report.py receivables.xls
     python renewals_report.py receivables.xls --contacts contacts.xlsx --days 60 -o renewals.xlsx
+    python renewals_report.py receivables.xls --cc 972 --cloud
     python renewals_report.py receivables.xls --icloud
 """
 import os
@@ -68,20 +69,20 @@ def load_receivables(path):
     return df.dropna(subset=['DOCUMENT_NO'])
 
 
-def normalize_phone(v):
-    """يحوّل الرقم لصيغة واتساب الدولية 970xxxxxxxxx."""
+def normalize_phone(v, cc='970'):
+    """يحوّل الرقم لصيغة واتساب الدولية cc+xxxxxxxxx."""
     if pd.isna(v):
         return ''
     d = re.sub(r'\D', '', str(v))
     if d.startswith('00'):
         d = d[2:]
-    if d.startswith('972'):
-        d = '970' + d[3:]
-    if d.startswith('0') and len(d) == 10:
-        d = '970' + d[1:]
-    if not d.startswith('970') and len(d) == 9:
-        d = '970' + d
-    return d if len(d) == 12 else ''
+    if not d.startswith(cc):
+        if d.startswith('0') and len(d) == 10:
+            d = cc + d[1:]
+        elif len(d) == 9:
+            d = cc + d
+    expected = len(cc) + 9
+    return d if len(d) == expected else ''
 
 
 def base_policy(doc_no):
@@ -89,7 +90,7 @@ def base_policy(doc_no):
     return re.split(r'-R-|-E-', str(doc_no))[0]
 
 
-def build(df, contacts=None, days=UPCOMING_DAYS, today=None):
+def build(df, contacts=None, days=UPCOMING_DAYS, today=None, cc='970'):
     today = today or dt.date.today()
 
     df = df.copy()
@@ -123,7 +124,7 @@ def build(df, contacts=None, days=UPCOMING_DAYS, today=None):
         ph_col = next((c for c in contacts.columns
                        if str(c).upper() in ('PHONE', 'MOBILE', 'الجوال', 'الهاتف')), contacts.columns[1])
         for _, r in contacts.iterrows():
-            p = normalize_phone(r[ph_col])
+            p = normalize_phone(r[ph_col], cc)
             if p:
                 cmap[str(r[name_col]).strip()] = p
         df['PHONE'] = df['BENEFICIARY'].map(
@@ -284,13 +285,16 @@ def main():
     p.add_argument('--days', type=int, default=UPCOMING_DAYS,
                    help='نطاق التجديدات القادمة بالأيام (افتراضي {})'.format(UPCOMING_DAYS))
     p.add_argument('-o', '--output', default=None)
-    p.add_argument('--icloud', action='store_true', help='نسخ الملف إلى iCloud Drive')
+    p.add_argument('--icloud', '--cloud', dest='icloud', action='store_true',
+                   help='نسخ الملف إلى iCloud Drive')
     p.add_argument('--icloud-folder', default=ICLOUD_FOLDER)
+    p.add_argument('--cc', '--country-code', dest='cc', default='970',
+                   help='كود الدولة للأرقام بدون مفتاح دولي (افتراضي 970)')
     a = p.parse_args()
 
     df = load_receivables(a.receivables)
     contacts = pd.read_excel(a.contacts) if a.contacts else None
-    df = build(df, contacts=contacts, days=a.days)
+    df = build(df, contacts=contacts, days=a.days, cc=a.cc)
 
     out = a.output or 'renewals_{:%Y%m%d}.xlsx'.format(dt.date.today())
     build_workbook(df, out, days=a.days)
