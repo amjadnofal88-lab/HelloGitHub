@@ -53,9 +53,16 @@ def load_receivables(path):
     path = Path(path)
     if path.suffix.lower() == '.xls':
         tmp = Path(tempfile.mkdtemp())
-        subprocess.run(['soffice', '--headless', '--convert-to', 'xlsx',
-                        '--outdir', str(tmp), str(path)],
-                       check=True, capture_output=True)
+        try:
+            subprocess.run(['soffice', '--headless', '--convert-to', 'xlsx',
+                            '--outdir', str(tmp), str(path)],
+                           check=True, capture_output=True)
+        except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+            raise SystemExit(
+                'ERROR: LibreOffice is required to convert .xls files. '
+                'Please install it (e.g. apt install libreoffice) or convert '
+                'the file to .xlsx manually.\nDetails: {}'.format(exc)
+            ) from exc
         path = tmp / (path.stem + '.xlsx')
     df = pd.read_excel(path, header=1)
     return df.dropna(subset=['DOCUMENT_NO'])
