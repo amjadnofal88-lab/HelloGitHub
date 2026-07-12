@@ -163,10 +163,10 @@ def make_plan(total, n=None, amount_per=None, every=30, start=None):
     return plan
 
 
-def _note_for(inst, calc):
+def _note_for(inst, calc, total_installments):
     """بيان الدفعة للإكسل."""
     parts = [
-        'عمولة مستحقة — دفعة {}/{}'.format(inst['no'], inst['no']),
+        'عمولة مستحقة — دفعة {}/{}'.format(inst['no'], total_installments),
         'حساب {}'.format(calc['account']),
         'نسبة {:.0f}%'.format(calc['rate'] * 100),
     ]
@@ -241,7 +241,7 @@ def export_plan(calc, plan, out='commission_plan.xlsx'):
             p['no'],
             float(p['amount']),
             p['due'].strftime('%d-%m-%Y'),
-            _note_for(p, calc),
+            _note_for(p, calc, len(plan)),
         ])
         ws2.cell(ws2.max_row, 2).number_format = MONEY_FMT
         ws2.cell(ws2.max_row, 2).font = BODY_FONT
