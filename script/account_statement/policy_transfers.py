@@ -52,17 +52,23 @@ def load_beneficiary(beneficiary_id=1, csv_path=None):
             for row in csv.DictReader(fh):
                 if int(row['BENEFICIARY_ID']) == beneficiary_id and row.get('STATUS', '').upper() == 'ACTIVE':
                     return {
+                        'code': row.get('BENEFICIARY_CODE', ''),
                         'iban': row['IBAN'],
                         'name': row['BENEFICIARY_NAME'],
                         'currency': row['CURRENCY'] or CURRENCY,
                         'bank': row.get('BANK_NAME', ''),
+                        'branch': row.get('BRANCH', ''),
+                        'account_no': row.get('ACCOUNT_NO', ''),
                     }
     # Fallback: environment variables → placeholder
     return {
+        'code': '',
         'iban': os.environ.get('BENEFICIARY_IBAN', 'CONFIGURE_BENEFICIARY_IBAN'),
         'name': os.environ.get('BENEFICIARY_NAME', 'CONFIGURE_BENEFICIARY_NAME'),
         'currency': CURRENCY,
         'bank': '',
+        'branch': '',
+        'account_no': '',
     }
 RATES = {'475151': Decimal('0.27'), '506322': Decimal('0.25')}
 DEFAULT_RATE = Decimal('0.25')
@@ -169,6 +175,9 @@ def export(info, rate, orders, excluded, out_xlsx, out_csv, beneficiary=None):
         ('عدد أوامر الحوالات', n),
         ('إجمالي الحوالات', float(total)),
         ('المستفيد', beneficiary_name),
+        ('البنك', ben.get('bank', '')),
+        ('الفرع', ben.get('branch', '')),
+        ('رقم الحساب (المستفيد)', ben.get('account_no', '')),
         ('الآيبان', iban),
         ('العملة', currency),
         ('تاريخ الإصدار', dt.date.today().strftime('%d-%m-%Y')),
