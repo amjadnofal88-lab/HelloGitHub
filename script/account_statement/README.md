@@ -1,4 +1,58 @@
-# GitHub Account Statement Generator
+# Account Statement Tools
+
+---
+
+## commission_report.py — كشف العمولة المحتجزة
+
+يقرأ كشف حساب الأهلية (PDF) ويحسب العمولة المحتجزة بناءً على نسبة تعاقدية،
+ثم يولّد خطة دفعات ويصدرها إلى مصنف إكسل عربي RTL.
+
+### الميزات
+
+- احتساب العمولة المحتجزة من كشف الحساب
+- خطة دفعات بعدد محدد أو مبلغ ثابت لكل دفعة
+- تصدير إكسل: ورقة الاحتساب + ورقة الدفعات (RTL، عربي)
+- جميع البيانات الحساسة (IBAN، المستفيد، البنك) من متغيرات البيئة فقط
+
+### الاستخدام
+
+```bash
+# 12 دفعة شهرية
+python commission_report.py statement.pdf --installments 12
+
+# مبلغ ثابت 5000₪ لكل دفعة
+python commission_report.py statement.pdf --amount-per 5000
+
+# نسبة مخصصة + تحديد ملف الإخراج
+python commission_report.py statement.pdf --rate 0.27 --installments 6 -o plan.xlsx
+
+# أيام مخصصة بين الدفعات (افتراضي 30)
+python commission_report.py statement.pdf --installments 4 --every 45
+```
+
+### المعاملات
+
+| المعامل | الوصف |
+|---------|-------|
+| `pdf` | مسار ملف PDF لكشف الحساب |
+| `--rate` | نسبة العمولة (مثال: `0.27`). إذا لم تُحدَّد تُقرأ من `COMMISSION_RATES` |
+| `--installments` | عدد الدفعات |
+| `--amount-per` | مبلغ ثابت لكل دفعة (بالشيكل) |
+| `--every` | أيام بين الدفعات (افتراضي: `30`) |
+| `--start` | تاريخ أول دفعة `YYYY-MM-DD` |
+| `-o` / `--output` | مسار ملف الإخراج `.xlsx` |
+
+### متغيرات البيئة
+
+| المتغير | الوصف |
+|---------|-------|
+| `COMMISSION_RATES` | نسب العمولة لكل حساب (JSON) مثال: `'{"475151": 0.27}'` |
+| `BENEFICIARY_NAME` | اسم المستفيد (يظهر في ورقة الاحتساب والبيان) |
+| `BENEFICIARY_BANK` | اسم البنك (يظهر في ورقة الاحتساب) |
+
+---
+
+## GitHub Account Statement Generator
 > 兴趣是最好的老师，[HelloGitHub](https://github.com/521xueweihan/HelloGitHub) 就是帮你找到兴趣！
 
 该脚本用于生成一个或多个 GitHub 用户的**账户报告（Account Statement）**，内容包括：
