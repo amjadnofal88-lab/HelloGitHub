@@ -58,8 +58,7 @@ COL_PREMIUM      = 'إجمالي القسط'
 # الوثائق التي تنتهي خلال هذه الأيام تُعدّ "تجديدات"
 RENEWAL_DAYS = 90
 
-HEADLESS = True
-PAGE_TIMEOUT = 30_000  # ميلي ثانية
+PAGE_TIMEOUT = 15_000  # ميلي ثانية — خفّض إذا كانت البوابة بطيئة
 
 logging.basicConfig(
     level=logging.INFO,
@@ -193,6 +192,7 @@ async def scrape_contacts(
     base_url: str,
     username: str,
     portal_pass: str,
+    headless: bool = True,
 ) -> list:
     """
     تسجيل الدخول وسحب بيانات التواصل لكل رقم وثيقة في القائمة.
@@ -200,7 +200,7 @@ async def scrape_contacts(
     """
     records = []
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch(headless=HEADLESS)
+        browser = await pw.chromium.launch(headless=headless)
         context = await browser.new_context(locale='ar-SA')
         page = await context.new_page()
 
@@ -277,8 +277,7 @@ def main() -> None:
     if not portal_pass:
         sys.exit('خطأ: متغير البيئة ESKA_PASS غير مضبوط.')
 
-    global HEADLESS
-    HEADLESS = not args.no_headless
+    headless = not args.no_headless
 
     # تحميل الملف
     if not os.path.isfile(args.xls):
@@ -298,7 +297,8 @@ def main() -> None:
             policy_numbers,
             base_url=args.url,
             username=ESKA_USER,
-            portal_pass=portal_pass
+            portal_pass=portal_pass,
+            headless=headless,
         )
     )
 
