@@ -400,11 +400,14 @@ def generate_statement(username, output_dir=None, icloud_folder=None, excel=Fals
 
     print('Statement saved to: {}'.format(output_path))
 
+    excel_path = None
     if excel:
-        generate_excel_statement(username, profile, repos, events, output_dir=output_dir)
+        excel_path = generate_excel_statement(username, profile, repos, events, output_dir=output_dir)
 
     if icloud_folder is not None:
         copy_to_icloud(output_path, icloud_folder=icloud_folder)
+        if excel_path:
+            copy_to_icloud(excel_path, icloud_folder=icloud_folder)
 
     return output_path
 
