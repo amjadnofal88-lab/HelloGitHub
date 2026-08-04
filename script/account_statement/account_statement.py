@@ -17,6 +17,7 @@ import logging
 import datetime
 import argparse
 import shutil
+from collections import Counter
 from pathlib import Path
 
 import requests
@@ -354,6 +355,60 @@ def generate_excel_statement(username, profile, repos, events, output_dir=None):
         ws_events.column_dimensions[col].width = width
     ws_events.freeze_panes = 'A2'
     ws_events.auto_filter.ref = ws_events.dimensions
+
+    # ── Sheet 4: Summary ──────────────────────────────────────────────────────
+    ws_summary = wb.create_sheet('Summary')
+
+    total_stars = sum(r.get('stargazers_count', 0) or 0 for r in repos)
+    total_forks = sum(r.get('forks_count', 0) or 0 for r in repos)
+    langs = Counter(r.get('language') for r in repos if r.get('language'))
+    top_repo = max(
+        repos,
+        key=lambda r: r.get('stargazers_count', 0) or 0,
+        default=None,
+    )
+
+    _excel_header_row(ws_summary, ['Metric', 'Value'])
+    metrics = [
+        ('Username', profile.get('login', username)),
+        ('Public Repos (fetched)', len(repos)),
+        ('Total Stars', total_stars),
+        ('Total Forks', total_forks),
+        ('Avg Stars / Repo', round(total_stars / len(repos), 2) if repos else 0),
+        ('Distinct Languages', len(langs)),
+        ('Top Language', langs.most_common(1)[0][0] if langs else '—'),
+        ('Most Starred Repo', top_repo.get('name', '—') if top_repo else '—'),
+        ('Most Starred Count', (top_repo.get('stargazers_count', 0) or 0) if top_repo else 0),
+        ('Followers', profile.get('followers', 0)),
+        ('Recent Events', len(events)),
+    ]
+    for label, value in metrics:
+        ws_summary.append([label, value])
+
+    # Languages breakdown
+    ws_summary.append([])
+    _excel_header_row(ws_summary, ['Language', 'Repos', 'Share %', 'Stars'])
+    lang_stars = Counter()
+    for r in repos:
+        if r.get('language'):
+            lang_stars[r['language']] += r.get('stargazers_count', 0) or 0
+    for lang, count in langs.most_common():
+        share = round(count / len(repos) * 100, 1) if repos else 0
+        ws_summary.append([lang, count, share, lang_stars[lang]])
+
+    # Event type breakdown
+    ws_summary.append([])
+    _excel_header_row(ws_summary, ['Event Type', 'Count'])
+    for etype, count in Counter(
+        e.get('type', 'Unknown') for e in events
+    ).most_common():
+        ws_summary.append([etype, count])
+
+    for col, width in zip('ABCD', [26, 14, 12, 12]):
+        ws_summary.column_dimensions[col].width = width
+
+    # Move Summary to the front
+    wb.move_sheet(ws_summary, offset=-wb.index(ws_summary))
 
     output_path = os.path.join(output_dir, 'statement_{}.xlsx'.format(username))
     wb.save(output_path)
