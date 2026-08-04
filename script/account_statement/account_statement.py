@@ -12,14 +12,13 @@
 """
 import html as html_module
 import os
+import re
 import logging
 import datetime
 import argparse
 import shutil
 from pathlib import Path
 
-import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
 import requests
 
 logging.basicConfig(
@@ -267,7 +266,8 @@ def copy_to_icloud(source_path, icloud_folder='GitHub Statements'):
 
 
 def _excel_header_row(ws, headers):
-    """Write a bold, grey-filled header row to *ws* and return the row number used."""
+    """Write a bold, grey-filled header row to *ws*."""
+    from openpyxl.styles import Font, PatternFill, Alignment
     header_font = Font(bold=True)
     header_fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
     header_align = Alignment(horizontal='center')
@@ -288,6 +288,14 @@ def generate_excel_statement(username, profile, repos, events, output_dir=None):
     :param output_dir: Directory to write the file. Defaults to script directory.
     :return: Path to the generated .xlsx file.
     """
+    try:
+        import openpyxl
+    except ImportError as exc:
+        raise ImportError(
+            'openpyxl is required to generate Excel statements. '
+            'Install it with: pip install "openpyxl>=3.1"'
+        ) from exc
+
     if output_dir is None:
         output_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -326,10 +334,12 @@ def generate_excel_statement(username, profile, repos, events, output_dir=None):
             repo.get('language') or '',
             repo.get('stargazers_count', 0),
             repo.get('forks_count', 0),
-            repo.get('updated_at', '')[:10] or '',
+            (repo.get('updated_at') or '')[:10],
         ])
     for col, width in zip('ABCDEFG', [30, 50, 50, 15, 8, 8, 12]):
         ws_repos.column_dimensions[col].width = width
+    ws_repos.freeze_panes = 'A2'
+    ws_repos.auto_filter.ref = ws_repos.dimensions
 
     # ── Sheet 3: Recent Activity ──────────────────────────────────────────────
     ws_events = wb.create_sheet('Recent Activity')
@@ -342,11 +352,26 @@ def generate_excel_statement(username, profile, repos, events, output_dir=None):
         ws_events.append([created_at, event_type, repo_name, repo_url])
     for col, width in zip('ABCD', [20, 25, 40, 55]):
         ws_events.column_dimensions[col].width = width
+    ws_events.freeze_panes = 'A2'
+    ws_events.auto_filter.ref = ws_events.dimensions
 
     output_path = os.path.join(output_dir, 'statement_{}.xlsx'.format(username))
     wb.save(output_path)
     print('Excel statement saved to: {}'.format(output_path))
     return output_path
+
+
+def _sanitize_username(username):
+    """Return *username* if it contains only safe characters, otherwise raise ValueError.
+
+    Allowed characters: letters, digits, and hyphens (GitHub's own username rules).
+    This prevents path-traversal attacks when the username is embedded in a filename.
+    """
+    if not re.fullmatch(r'[A-Za-z0-9-]+', username):
+        raise ValueError(
+            'Invalid username {!r}: only letters, digits, and hyphens are allowed.'.format(username)
+        )
+    return username
 
 
 def generate_statement(username, output_dir=None, icloud_folder=None, excel=False):
@@ -361,6 +386,11 @@ def generate_statement(username, output_dir=None, icloud_folder=None, excel=Fals
     :return: Path to the generated HTML file, or None on failure.
     """
     print('Fetching data for user: {}'.format(username))
+    try:
+        username = _sanitize_username(username)
+    except ValueError as exc:
+        print('ERROR: {}'.format(exc))
+        return None
 
     profile = get_user_profile(username)
     if profile is None:
