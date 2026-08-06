@@ -127,17 +127,10 @@ def calc_commissions(df: pd.DataFrame) -> pd.DataFrame:
 
 def calc_performance(df: pd.DataFrame) -> pd.DataFrame:
     """أداء كل وكيل: عدد الوثائق / التجديدات / الإجمالي."""
-    agg = {
-        COL_PREMIUM: 'sum',
-        'العمولة': 'sum',
-    }
     counts = df.groupby(COL_AGENT).agg(
         عدد_الوثائق=(COL_POLICY_NO, 'count'),
-        **{k: pd.NamedAgg(column=v, aggfunc='sum')
-           for k, v in {
-               'إجمالي_الأقساط': COL_PREMIUM,
-               'إجمالي_العمولات': 'العمولة',
-           }.items()},
+        إجمالي_الأقساط=(COL_PREMIUM, 'sum'),
+        إجمالي_العمولات=('العمولة', 'sum'),
     ).reset_index()
 
     if 'الحالة' in df.columns:
