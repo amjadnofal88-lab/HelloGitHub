@@ -299,10 +299,16 @@ def raw_sql():
             error = '<p class="error">يُسمح فقط بجمل SELECT.</p>'
         else:
             try:
-                rows = get_db().execute(stmt).fetchall()
-                result = rows_to_html(rows)
-            except sqlite3.Error as exc:
-                error = f'<p class="error">خطأ: {exc}</p>'
+                # Read-only connection for raw SQL route to limit risk
+                ro_conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+                ro_conn.row_factory = sqlite3.Row
+                try:
+                    rows = ro_conn.execute(stmt).fetchall()
+                    result = rows_to_html(rows)
+                finally:
+                    ro_conn.close()
+            except sqlite3.Error:
+                error = '<p class="error">خطأ في تنفيذ الاستعلام.</p>'
     return page("SQL مباشر", html.format(stmt=html_module.escape(stmt)) + error + result)
 
 
