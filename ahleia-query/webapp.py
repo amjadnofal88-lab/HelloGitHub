@@ -21,10 +21,9 @@ Routes:
 """
 
 import argparse
+import html as html_module
 import sqlite3
-import subprocess
 import sys
-from pathlib import Path
 
 try:
     from flask import Flask, g, render_template_string, request, redirect, url_for
@@ -159,7 +158,7 @@ def search():
                 (like, like, like),
             ).fetchall()
             result = rows_to_html(rows)
-    return page("بحث نصي", html.format(term=term) + result)
+    return page("بحث نصي", html.format(term=html_module.escape(term)) + result)
 
 
 @app.route("/range", methods=["GET", "POST"])
@@ -185,7 +184,7 @@ def date_range():
             params,
         ).fetchall()
         result = rows_to_html(rows)
-    return page("نطاق تاريخ", html.format(fd=fd, td=td, acc=acc) + result)
+    return page("نطاق تاريخ", html.format(fd=html_module.escape(fd), td=html_module.escape(td), acc=html_module.escape(acc)) + result)
 
 
 @app.route("/cheques", methods=["GET", "POST"])
@@ -210,7 +209,7 @@ def cheques():
                 "SELECT * FROM entries WHERE cheque_no IS NOT NULL AND TRIM(cheque_no)!='' ORDER BY iso_date"
             ).fetchall()
             result = rows_to_html(rows)
-    return page("الشيكات", html.format(num=num) + result)
+    return page("الشيكات", html.format(num=html_module.escape(num)) + result)
 
 
 @app.route("/returned")
@@ -304,7 +303,7 @@ def raw_sql():
                 result = rows_to_html(rows)
             except sqlite3.Error as exc:
                 error = f'<p class="error">خطأ: {exc}</p>'
-    return page("SQL مباشر", html.format(stmt=stmt) + error + result)
+    return page("SQL مباشر", html.format(stmt=html_module.escape(stmt)) + error + result)
 
 
 # ---------------------------------------------------------------------------

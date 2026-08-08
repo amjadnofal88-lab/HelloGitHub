@@ -171,7 +171,6 @@ def build_returned(wb, conn, where: str, params: tuple) -> None:
     keywords = ["مرتجع", "راجع", "returned", "bounced", "dishonoured", "dishonored"]
     like_expr = " OR ".join("LOWER(note) LIKE ?" for _ in keywords)
     kw_params = [f"%{k}%" for k in keywords]
-    connector = "AND" if where.strip() != "WHERE 1=1" else "AND"
     full_where = f"{where} AND ({like_expr})"
     rows = fetch(conn, f"SELECT * FROM entries {full_where} ORDER BY iso_date", params + tuple(kw_params))
     for i, row in enumerate(rows, 2):
