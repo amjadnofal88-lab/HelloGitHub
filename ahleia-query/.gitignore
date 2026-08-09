@@ -1,9 +1,12 @@
+*.csv
 *.pdf
 *.xlsx
+*.xls
 *.db
+*.sqlite
 statements/
+outputs/
 __pycache__/
-*.pyc
 .env
 venv/
 .venv/
