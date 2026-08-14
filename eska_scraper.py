@@ -122,18 +122,20 @@ def run_date_range_scrape(config, date_from, date_to, output_path):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context_kwargs = {}
-        if os.path.exists(STATE_FILE):
+        state_exists = os.path.exists(STATE_FILE)
+        if state_exists:
             context_kwargs['storage_state'] = STATE_FILE
         context = browser.new_context(**context_kwargs)
         page = context.new_page()
 
         page.goto(config.url, wait_until='domcontentloaded')
 
+        login_success = False
         if config.user and config.password:
             try:
-                attempt_login(page, config)
+                login_success = attempt_login(page, config)
             except Exception as exc:
-                print('Login attempt failed: {}'.format(exc))
+                raise RuntimeError('Login attempt failed: {}'.format(exc)) from exc
 
         if config.transactions_url:
             page.goto(config.transactions_url, wait_until='domcontentloaded')
@@ -145,13 +147,14 @@ def run_date_range_scrape(config, date_from, date_to, output_path):
 
         rows = extract_table(page, config.table_selector)
         if not rows:
-            print('No rows found for the selected range.')
+            raise RuntimeError('No rows found for the selected range.')
 
         dataframe = pd.DataFrame(rows)
         dataframe.to_excel(output_path, index=False)
         print('Exported {} rows to {}'.format(len(dataframe.index), output_path))
 
-        context.storage_state(path=STATE_FILE)
+        if login_success:
+            context.storage_state(path=STATE_FILE)
         browser.close()
 
 
