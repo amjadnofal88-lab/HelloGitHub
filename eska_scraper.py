@@ -23,8 +23,8 @@ class Config(object):
         self.user_selector = os.getenv('ESKA_USER_SELECTOR', 'input[name="username"], input[type="email"], #username')
         self.pass_selector = os.getenv('ESKA_PASS_SELECTOR', 'input[name="password"], input[type="password"], #password')
         self.login_button_selector = os.getenv('ESKA_LOGIN_BUTTON_SELECTOR', 'button[type="submit"], button:has-text("Login"), button:has-text("Sign in")')
-        self.from_selector = os.getenv('ESKA_FROM_SELECTOR', 'input[name="from"], input[name="date_from"], input[type="date"]')
-        self.to_selector = os.getenv('ESKA_TO_SELECTOR', 'input[name="to"], input[name="date_to"], input[type="date"]')
+        self.from_selector = os.getenv('ESKA_FROM_SELECTOR', 'input[name="from"], input[name="date_from"], input[name="start_date"]')
+        self.to_selector = os.getenv('ESKA_TO_SELECTOR', 'input[name="to"], input[name="date_to"], input[name="end_date"]')
         self.submit_selector = os.getenv('ESKA_SUBMIT_SELECTOR', 'button[type="submit"], button:has-text("Search"), button:has-text("Filter")')
         self.table_selector = os.getenv('ESKA_TABLE_SELECTOR', 'table')
 
@@ -132,8 +132,8 @@ def run_date_range_scrape(config, date_from, date_to, output_path):
         if config.user and config.password:
             try:
                 attempt_login(page, config)
-            except Exception:
-                pass
+            except Exception as exc:
+                print('Login attempt failed: {}'.format(exc))
 
         if config.transactions_url:
             page.goto(config.transactions_url, wait_until='domcontentloaded')
@@ -164,7 +164,10 @@ def main():
         return 0
 
     if not args.date_from or not args.date_to:
-        raise ValueError('Use --inspect first, then run with both --from and --to.')
+        raise ValueError(
+            'Both --from and --to are required for scraping. '
+            'Run with --inspect first if you have not bootstrapped session state yet.'
+        )
 
     output_path = args.output or 'eska_{}_{}.xlsx'.format(
         args.date_from.strftime('%Y-%m-%d'), args.date_to.strftime('%Y-%m-%d')
