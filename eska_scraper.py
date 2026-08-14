@@ -145,9 +145,8 @@ def run_date_range_scrape(config, date_from, date_to, output_path):
 
             page.goto(config.url, wait_until='domcontentloaded')
 
-            login_success = False
             if config.user and config.password:
-                login_success = attempt_login(page, config)
+                attempt_login(page, config)
 
             if config.transactions_url:
                 page.goto(config.transactions_url, wait_until='domcontentloaded')
@@ -165,8 +164,7 @@ def run_date_range_scrape(config, date_from, date_to, output_path):
             dataframe.to_excel(output_path, index=False)
             print('Exported {} rows to {}'.format(len(dataframe.index), output_path))
 
-            if login_success:
-                context.storage_state(path=STATE_FILE)
+            context.storage_state(path=STATE_FILE)
         finally:
             browser.close()
 
