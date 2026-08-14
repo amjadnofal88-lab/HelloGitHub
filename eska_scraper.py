@@ -87,20 +87,17 @@ def first_visible(page, selector_group, timeout_ms=7000):
 def attempt_login(page, config):
     if not (config.user and config.password):
         return False
-    password = config.password
     try:
         user_input = first_visible(page, config.user_selector)
         pass_input = first_visible(page, config.pass_selector)
         user_input.fill(config.user)
-        pass_input.fill(password)
+        pass_input.fill(config.password)
         login_btn = first_visible(page, config.login_button_selector)
         login_btn.click()
         page.wait_for_load_state('networkidle', timeout=15000)
         return True
     except Exception as exc:
         raise RuntimeError('Unable to complete login flow: {}'.format(exc)) from exc
-    finally:
-        config.password = ''
 
 
 def extract_table(page, table_selector):
@@ -146,7 +143,10 @@ def run_date_range_scrape(config, date_from, date_to, output_path):
             page.goto(config.url, wait_until='domcontentloaded')
 
             if config.user and config.password:
-                attempt_login(page, config)
+                try:
+                    attempt_login(page, config)
+                finally:
+                    config.password = ''
 
             if config.transactions_url:
                 page.goto(config.transactions_url, wait_until='domcontentloaded')
