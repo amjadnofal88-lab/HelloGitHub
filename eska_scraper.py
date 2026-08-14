@@ -42,7 +42,13 @@ def parse_args():
     parser.add_argument('--from', dest='date_from', type=parse_date, help='Start date (YYYY-MM-DD).')
     parser.add_argument('--to', dest='date_to', type=parse_date, help='End date (YYYY-MM-DD).')
     parser.add_argument('--output', default='', help='Output Excel path (default: eska_YYYY-MM-DD_YYYY-MM-DD.xlsx).')
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not args.inspect and (not args.date_from or not args.date_to):
+        parser.error(
+            'Both --from and --to are required for scraping. '
+            'Run with --inspect first if you have not bootstrapped session state yet.'
+        )
+    return args
 
 
 def require_url(url):
@@ -54,14 +60,16 @@ def save_manual_session(config):
     require_url(config.url)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, devtools=True)
-        context = browser.new_context()
-        page = context.new_page()
-        page.goto(config.url, wait_until='domcontentloaded')
-        print('Browser opened. Complete login manually, then press Enter here to save session...')
-        input()
-        context.storage_state(path=STATE_FILE)
-        print('Saved storage state to {}'.format(STATE_FILE))
-        browser.close()
+        try:
+            context = browser.new_context()
+            page = context.new_page()
+            page.goto(config.url, wait_until='domcontentloaded')
+            print('Browser opened. Complete login manually, then press Enter here to save session...')
+            input()
+            context.storage_state(path=STATE_FILE)
+            print('Saved storage state to {}'.format(STATE_FILE))
+        finally:
+            browser.close()
 
 
 def first_visible(page, selector_group, timeout_ms=7000):
@@ -79,14 +87,17 @@ def first_visible(page, selector_group, timeout_ms=7000):
 def attempt_login(page, config):
     if not (config.user and config.password):
         return False
-    user_input = first_visible(page, config.user_selector)
-    pass_input = first_visible(page, config.pass_selector)
-    user_input.fill(config.user)
-    pass_input.fill(config.password)
-    login_btn = first_visible(page, config.login_button_selector)
-    login_btn.click()
-    page.wait_for_load_state('networkidle', timeout=15000)
-    return True
+    try:
+        user_input = first_visible(page, config.user_selector)
+        pass_input = first_visible(page, config.pass_selector)
+        user_input.fill(config.user)
+        pass_input.fill(config.password)
+        login_btn = first_visible(page, config.login_button_selector)
+        login_btn.click()
+        page.wait_for_load_state('networkidle', timeout=15000)
+        return True
+    finally:
+        config.password = ''
 
 
 def extract_table(page, table_selector):
@@ -121,41 +132,43 @@ def run_date_range_scrape(config, date_from, date_to, output_path):
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context_kwargs = {}
-        state_exists = os.path.exists(STATE_FILE)
-        if state_exists:
-            context_kwargs['storage_state'] = STATE_FILE
-        context = browser.new_context(**context_kwargs)
-        page = context.new_page()
+        try:
+            context_kwargs = {}
+            state_exists = os.path.exists(STATE_FILE)
+            if state_exists:
+                context_kwargs['storage_state'] = STATE_FILE
+            context = browser.new_context(**context_kwargs)
+            page = context.new_page()
 
-        page.goto(config.url, wait_until='domcontentloaded')
+            page.goto(config.url, wait_until='domcontentloaded')
 
-        login_success = False
-        if config.user and config.password:
-            try:
-                login_success = attempt_login(page, config)
-            except Exception as exc:
-                raise RuntimeError('Login attempt failed: {}'.format(exc)) from exc
+            login_success = False
+            if config.user and config.password:
+                try:
+                    login_success = attempt_login(page, config)
+                except Exception as exc:
+                    raise RuntimeError('Login attempt failed: {}'.format(exc)) from exc
 
-        if config.transactions_url:
-            page.goto(config.transactions_url, wait_until='domcontentloaded')
+            if config.transactions_url:
+                page.goto(config.transactions_url, wait_until='domcontentloaded')
 
-        first_visible(page, config.from_selector).fill(date_from.strftime('%Y-%m-%d'))
-        first_visible(page, config.to_selector).fill(date_to.strftime('%Y-%m-%d'))
-        first_visible(page, config.submit_selector).click()
-        page.wait_for_load_state('networkidle', timeout=20000)
+            first_visible(page, config.from_selector).fill(date_from.strftime('%Y-%m-%d'))
+            first_visible(page, config.to_selector).fill(date_to.strftime('%Y-%m-%d'))
+            first_visible(page, config.submit_selector).click()
+            page.wait_for_load_state('networkidle', timeout=20000)
 
-        rows = extract_table(page, config.table_selector)
-        if not rows:
-            raise RuntimeError('No rows found for the selected range.')
+            rows = extract_table(page, config.table_selector)
+            if not rows:
+                raise RuntimeError('No rows found for the selected range.')
 
-        dataframe = pd.DataFrame(rows)
-        dataframe.to_excel(output_path, index=False)
-        print('Exported {} rows to {}'.format(len(dataframe.index), output_path))
+            dataframe = pd.DataFrame(rows)
+            dataframe.to_excel(output_path, index=False)
+            print('Exported {} rows to {}'.format(len(dataframe.index), output_path))
 
-        if login_success:
-            context.storage_state(path=STATE_FILE)
-        browser.close()
+            if login_success:
+                context.storage_state(path=STATE_FILE)
+        finally:
+            browser.close()
 
 
 def main():
@@ -165,12 +178,6 @@ def main():
     if args.inspect:
         save_manual_session(config)
         return 0
-
-    if not args.date_from or not args.date_to:
-        raise ValueError(
-            'Both --from and --to are required for scraping. '
-            'Run with --inspect first if you have not bootstrapped session state yet.'
-        )
 
     output_path = args.output or 'eska_{}_{}.xlsx'.format(
         args.date_from.strftime('%Y-%m-%d'), args.date_to.strftime('%Y-%m-%d')
