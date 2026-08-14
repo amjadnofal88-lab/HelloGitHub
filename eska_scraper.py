@@ -73,6 +73,7 @@ def save_manual_session(config):
 
 
 def first_visible(page, selector_group, timeout_ms=7000):
+    """Return first visible locator from a comma-separated selector list."""
     selectors = [part.strip() for part in selector_group.split(',') if part.strip()]
     for selector in selectors:
         try:
@@ -97,7 +98,9 @@ def attempt_login(page, config):
         page.wait_for_load_state('networkidle', timeout=15000)
         return True
     except Exception as exc:
-        raise RuntimeError('Unable to complete login flow: {}'.format(exc)) from exc
+        raise RuntimeError(
+            'Unable to complete login flow ({}): {}'.format(type(exc).__name__, repr(exc))
+        ) from exc
 
 
 def extract_table(page, table_selector):
