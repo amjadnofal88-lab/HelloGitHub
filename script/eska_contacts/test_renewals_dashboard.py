@@ -18,7 +18,7 @@ class TestPhoneAndMasking(unittest.TestCase):
         self.assertEqual(module.normalize_phone('+972599123456', '970'), '+972599123456')
 
     def test_mask_phone(self):
-        self.assertEqual(module.mask_phone('+970599123456'), '970******56')
+        self.assertEqual(module.mask_phone('+970599123456'), '970*******56')
 
     def test_mask_email(self):
         self.assertEqual(module.mask_email('mohammad@example.com'), 'm******d@example.com')
@@ -44,17 +44,16 @@ class TestPriorityAndMessage(unittest.TestCase):
 
 
 class TestBuildDataset(unittest.TestCase):
-    @patch('renewals_dashboard.date')
-    def test_build_dataset_filters_and_enriches_contacts(self, mock_date):
-        fixed_today = module.date(2026, 1, 1)
-        mock_date.today.return_value = fixed_today
-        mock_date.side_effect = lambda *args, **kwargs: module.date(*args, **kwargs)
+    def test_build_dataset_filters_and_enriches_contacts(self):
+        today = module.date.today()
+        within_window = (today + module.timedelta(days=10)).strftime('%d/%m/%Y')
+        outside_window = (today + module.timedelta(days=500)).strftime('%d/%m/%Y')
 
         input_df = pd.DataFrame({
             'رقم الوثيقة': ['A1', 'A2'],
             'اسم العميل': ['عميل 1', 'عميل 2'],
             'شركة التأمين': ['شركة ألف', 'شركة باء'],
-            'تاريخ الانتهاء': ['2026-01-10', '2027-02-01'],
+            'تاريخ الانتهاء': [within_window, outside_window],
         })
         contacts_df = pd.DataFrame({
             'رقم الوثيقة': ['A1'],
