@@ -104,7 +104,6 @@ class TestCommissionTransfer(unittest.TestCase):
                 amount_minor=100,
             )
 
-
     def test_reraises_non_stripe_exception(self):
         original_stripe = ct.stripe
         try:

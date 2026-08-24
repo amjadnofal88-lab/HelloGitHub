@@ -25,7 +25,7 @@ def transfer_commission(
 
     Notes:
       - A preconfigured Stripe client must be injected via `client`.
-      - The optional `stripe` import is used only to detect `stripe.StripeError`.
+      - The optional `stripe` import is used only to detect `stripe.StripeError`; if import fails, client exceptions are re-raised.
       - Stripe API errors are returned as {"success": False, "error": ...}.
       - Non-Stripe exceptions are re-raised.
     """
