@@ -84,8 +84,6 @@ def normalize_phone(raw_phone, country_code='970'):
         return value
     if value.startswith('00'):
         value = '+' + value[2:]
-        if value.startswith('+970') or value.startswith('+972'):
-            return value
         return value
     if value.startswith('+'):
         return value
@@ -272,7 +270,7 @@ def escape_js_string(text):
 def render_html(rows, summary, output_path):
     table_rows = []
     for row in rows:
-        message_js = escape_js_string(row.get('message', ''))
+        message_js = html_module.escape(escape_js_string(row.get('message', '')), quote=True)
         whatsapp_btn = '<a class="btn" href="{}" target="_blank" rel="noopener">واتساب</a>'.format(
             html_module.escape(row['whatsapp_url'])
         ) if row.get('whatsapp_url') else '<span class="btn disabled">واتساب</span>'
