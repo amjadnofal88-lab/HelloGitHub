@@ -104,11 +104,10 @@ class TestCommissionTransfer(unittest.TestCase):
                 commission_id="AHLIA-2026-001",
                 amount_minor=100,
             )
+            self.assertFalse(result["success"])
+            self.assertIn("stripe failed", result["error"])
         finally:
             ct.stripe = original_stripe
-
-        self.assertFalse(result["success"])
-        self.assertIn("stripe failed", result["error"])
 
 
 if __name__ == "__main__":

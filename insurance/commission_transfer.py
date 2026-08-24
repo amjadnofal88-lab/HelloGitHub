@@ -24,6 +24,8 @@ def transfer_commission(
       50000 = 500.00 ILS
 
     Notes:
+      - A preconfigured Stripe client must be injected via `client`.
+      - The optional `stripe` import is used only to detect `stripe.StripeError`.
       - Stripe API errors are returned as {"success": False, "error": ...}.
       - Non-Stripe exceptions are re-raised.
     """
