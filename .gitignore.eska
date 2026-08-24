@@ -1,0 +1,6 @@
+# ESKA sensitive local inputs/outputs
+script/eska_contacts/*.xls
+script/eska_contacts/*.xlsx
+script/eska_contacts/*.xlsm
+script/eska_contacts/*.csv
+script/eska_contacts/*.html
