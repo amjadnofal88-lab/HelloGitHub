@@ -42,6 +42,16 @@ class _FailingClient:
         self.v1 = type("V1", (), {"transfers": _FailingTransfers()})()
 
 
+class _ExplodingTransfers:
+    def create(self, payload, options=None):
+        raise RuntimeError("unexpected")
+
+
+class _ExplodingClient:
+    def __init__(self):
+        self.v1 = type("V1", (), {"transfers": _ExplodingTransfers()})()
+
+
 class TestCommissionTransfer(unittest.TestCase):
     def test_success_with_ils_agorot(self):
         client = _Client()
@@ -93,6 +103,21 @@ class TestCommissionTransfer(unittest.TestCase):
                 commission_id=" ",
                 amount_minor=100,
             )
+
+
+    def test_reraises_non_stripe_exception(self):
+        original_stripe = ct.stripe
+        try:
+            ct.stripe = type("StripeModule", (), {"StripeError": _StripeError})
+            with self.assertRaises(RuntimeError):
+                ct.transfer_commission(
+                    client=_ExplodingClient(),
+                    connected_account_id="acct_123",
+                    commission_id="AHLIA-2026-001",
+                    amount_minor=100,
+                )
+        finally:
+            ct.stripe = original_stripe
 
     def test_handles_stripe_error(self):
         original_stripe = ct.stripe

@@ -6,7 +6,7 @@ from typing import Any, Dict
 
 try:
     import stripe  # type: ignore
-except Exception:  # pragma: no cover - optional at runtime in this repo
+except ImportError:  # pragma: no cover - optional at runtime in this repo
     stripe = None
 
 
@@ -36,7 +36,7 @@ def transfer_commission(
     if not isinstance(connected_account_id, str) or not connected_account_id.strip():
         raise ValueError("connected_account_id is required")
 
-    if not isinstance(amount_minor, int) or amount_minor <= 0:
+    if isinstance(amount_minor, bool) or not isinstance(amount_minor, int) or amount_minor <= 0:
         raise ValueError("Commission amount must be a positive integer in agorot")
 
     normalized_currency = (currency or "").strip().lower()
