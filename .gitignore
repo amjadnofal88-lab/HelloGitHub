@@ -56,6 +56,10 @@ target/
 
 # Local settings
 local_settings.py
+.env
+*.pem
+*.key
+secrets/
 
 # vim
 *.swp
