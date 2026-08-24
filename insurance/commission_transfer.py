@@ -22,10 +22,17 @@ def transfer_commission(
 
     amount_minor is in agorot (smallest ILS unit):
       50000 = 500.00 ILS
+
+    Notes:
+      - Stripe API errors are returned as {"success": False, "error": ...}.
+      - Non-Stripe exceptions are re-raised.
     """
 
     if not isinstance(commission_id, str) or not commission_id.strip():
         raise ValueError("commission_id is required")
+
+    if not isinstance(connected_account_id, str) or not connected_account_id.strip():
+        raise ValueError("connected_account_id is required")
 
     if not isinstance(amount_minor, int) or amount_minor <= 0:
         raise ValueError("Commission amount must be a positive integer in agorot")
@@ -33,9 +40,6 @@ def transfer_commission(
     normalized_currency = (currency or "").strip().lower()
     if normalized_currency != "ils":
         raise ValueError("Only ILS currency is supported for agorot transfers")
-
-    if not isinstance(connected_account_id, str) or not connected_account_id.strip():
-        raise ValueError("connected_account_id is required")
 
     try:
         transfer = client.v1.transfers.create(
