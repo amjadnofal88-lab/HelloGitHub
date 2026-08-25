@@ -73,3 +73,6 @@ content*.md
 # account statement generated files
 script/account_statement/statement_*.html
 script/account_statement/*_log.txt
+
+# environment variable files
+.env
