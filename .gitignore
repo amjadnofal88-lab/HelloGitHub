@@ -56,6 +56,10 @@ target/
 
 # Local settings
 local_settings.py
+.env
+*.pem
+*.key
+secrets/
 
 # vim
 *.swp
@@ -73,3 +77,10 @@ content*.md
 # account statement generated files
 script/account_statement/statement_*.html
 script/account_statement/*_log.txt
+
+# ESKA sensitive local inputs/outputs
+script/eska_contacts/*.xls
+script/eska_contacts/*.xlsx
+script/eska_contacts/*.xlsm
+script/eska_contacts/*.csv
+script/eska_contacts/*.html

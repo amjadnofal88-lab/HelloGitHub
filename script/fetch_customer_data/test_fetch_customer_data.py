@@ -150,6 +150,11 @@ class TestFetchCustomerRecords(unittest.TestCase):
 
 
 class TestMain(unittest.TestCase):
+    @patch('sys.argv', ['fetch_customer_data.py'])
+    def test_parse_args_uses_master_by_default(self):
+        args = module.parse_args()
+        self.assertEqual(args.branch, 'master')
+
     @patch('fetch_customer_data.export_to_excel')
     @patch('fetch_customer_data.fetch_customer_records')
     @patch('fetch_customer_data.requests.get')

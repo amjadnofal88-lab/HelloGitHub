@@ -262,6 +262,77 @@
             margin-top: 4px;
         }
 
+        /* AI Assistant */
+        .chat-panel {
+            padding: 20px 24px 24px;
+        }
+
+        .chat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .input,
+        .textarea {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .textarea {
+            min-height: 96px;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+
+        .chat-output {
+            margin-top: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            background: #f9fafb;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #1f2937;
+        }
+
+        .chat-message:last-child {
+            margin-bottom: 0;
+        }
+
+        .chat-role {
+            font-size: 12px;
+            font-weight: 700;
+            color: #003087;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .status-text {
+            font-size: 12px;
+            color: #6b7280;
+            margin-left: 10px;
+        }
+
         /* Footer */
         .footer {
             text-align: center;
@@ -337,6 +408,30 @@
                     <div class="title">Claims Status</div>
                     <div class="desc">Track claim progress</div>
                 </a>
+            </div>
+        </div>
+
+        <!-- AI Assistant -->
+        <div class="section">
+            <div class="section-header">
+                <h2>ChatGPT Assistant</h2>
+            </div>
+            <div class="chat-panel">
+                <div class="chat-grid">
+                    <div>
+                        <label class="field-label" for="openAiModel">Model</label>
+                        <input id="openAiModel" class="input" type="text" value="gpt-4o-mini">
+                    </div>
+                    <div>
+                        <label class="field-label" for="openAiEndpoint">OpenAI Proxy Endpoint</label>
+                        <input id="openAiEndpoint" class="input" type="text" value="/api/openai/chat">
+                    </div>
+                </div>
+                <label class="field-label" for="chatPrompt">Prompt</label>
+                <textarea id="chatPrompt" class="textarea" placeholder="Ask ChatGPT about policies, claims, or customer support responses..."></textarea>
+                <button id="sendOpenAiBtn" class="btn btn-primary" type="button" onclick="sendToOpenAI()">Send to OpenAI</button>
+                <span class="status-text" id="chatStatus">Ready</span>
+                <div class="chat-output" id="chatOutput"></div>
             </div>
         </div>
 
@@ -468,6 +563,94 @@
             document.getElementById('activePolicies').textContent = active;
             document.getElementById('openClaims').textContent = open;
             document.getElementById('expiringSoon').textContent = expiring;
+        }
+
+        function setChatStatus(text) {
+            document.getElementById('chatStatus').textContent = text;
+        }
+
+        function appendChatMessage(role, message) {
+            var output = document.getElementById('chatOutput');
+            var wrapper = document.createElement('div');
+            wrapper.className = 'chat-message';
+
+            var roleEl = document.createElement('span');
+            roleEl.className = 'chat-role';
+            roleEl.textContent = role;
+
+            var textEl = document.createElement('div');
+            textEl.textContent = message;
+
+            wrapper.appendChild(roleEl);
+            wrapper.appendChild(textEl);
+            output.appendChild(wrapper);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function isValidEndpoint(path) {
+            return /^\/[a-zA-Z0-9/._-]+$/.test(path);
+        }
+
+        function sendToOpenAI() {
+            var prompt = document.getElementById('chatPrompt').value.trim();
+            var model = document.getElementById('openAiModel').value.trim() || 'gpt-4o-mini';
+            var endpoint = document.getElementById('openAiEndpoint').value.trim() || '/api/openai/chat';
+            var btn = document.getElementById('sendOpenAiBtn');
+
+            if (!prompt) {
+                setChatStatus('Enter a prompt first.');
+                return;
+            }
+            if (!isValidEndpoint(endpoint)) {
+                setChatStatus('Endpoint must be a relative path like /api/openai/chat.');
+                return;
+            }
+
+            btn.disabled = true;
+            setChatStatus('Sending...');
+            appendChatMessage('You', prompt);
+
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    prompt: prompt
+                })
+            })
+            .then(function(response) {
+                return response.json().then(function(data) {
+                    return { ok: response.ok, data: data };
+                });
+            })
+            .then(function(result) {
+                if (!result.ok) {
+                    var msg = (result.data && result.data.error && result.data.error.message)
+                        ? result.data.error.message
+                        : 'OpenAI request failed.';
+                    throw new Error(msg);
+                }
+                var reply = (result.data && result.data.reply != null)
+                    ? result.data.reply
+                    : (result.data &&
+                        result.data.choices &&
+                        result.data.choices[0] &&
+                        result.data.choices[0].message &&
+                        result.data.choices[0].message.content);
+
+                appendChatMessage('Assistant', reply || 'No response text returned.');
+                setChatStatus('Completed');
+                document.getElementById('chatPrompt').value = '';
+            })
+            .catch(function(err) {
+                setChatStatus('Error: ' + err.message);
+                appendChatMessage('System', 'Error: ' + err.message);
+            })
+            .finally(function() {
+                btn.disabled = false;
+            });
         }
 
         renderSummary();

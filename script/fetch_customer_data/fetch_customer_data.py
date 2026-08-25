@@ -19,7 +19,7 @@ from openpyxl import Workbook, load_workbook
 GITHUB_API = 'https://api.github.com'
 DEFAULT_OWNER = 'amjadnofal88-lab'
 DEFAULT_REPO = 'HelloGitHub'
-DEFAULT_BRANCH = 'main'
+DEFAULT_BRANCH = 'master'
 SUPPORTED_EXTENSIONS = {'.xlsx', '.xls', '.csv', '.json', '.db', '.sqlite'}
 
 
