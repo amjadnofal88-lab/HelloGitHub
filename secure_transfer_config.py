@@ -43,8 +43,10 @@ def load_transfer_config() -> TransferConfig:
         raise ConfigurationError("BANK_IBAN is required")
     if not _IBAN_PATTERN.fullmatch(iban) or not _has_valid_iban_checksum(iban):
         raise ConfigurationError("BANK_IBAN is invalid")
+    if not transfer_reference:
+        raise ConfigurationError("BANK_TRANSFER_REFERENCE is required")
     if not _REFERENCE_PATTERN.fullmatch(transfer_reference):
-        raise ConfigurationError("BANK_TRANSFER_REFERENCE is missing or invalid")
+        raise ConfigurationError("BANK_TRANSFER_REFERENCE is invalid")
 
     return TransferConfig(iban=iban, transfer_reference=transfer_reference)
 
