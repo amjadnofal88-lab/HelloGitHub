@@ -15,8 +15,13 @@ import os
 import logging
 import datetime
 import argparse
+import platform
+import shutil
+from pathlib import Path
 
 import requests
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -239,14 +244,16 @@ def generate_statement(username, output_dir=None):
 
     :param username: GitHub username
     :param output_dir: Directory to write the HTML file. Defaults to script directory.
-    :return: Path to the generated HTML file, or None on failure.
+    :return: Tuple (html_path, profile, repos, events) where html_path is the path
+             to the generated HTML file (or None on failure) and the remaining items
+             are the fetched data (useful for further exports).
     """
     print('Fetching data for user: {}'.format(username))
 
     profile = get_user_profile(username)
     if profile is None:
         print('ERROR: Could not fetch profile for "{}". Check the username and try again.'.format(username))
-        return None
+        return None, None, None, None
 
     repos = get_user_repos(username)
     events = get_user_events(username)
@@ -280,7 +287,123 @@ def generate_statement(username, output_dir=None):
         f.write(html)
 
     print('Statement saved to: {}'.format(output_path))
+    return output_path, profile, repos, events
+
+
+def _xl_header_row(ws, headers):
+    """Write a bold, shaded header row to *ws* and return the next row index."""
+    header_font = Font(bold=True)
+    header_fill = PatternFill(fill_type='solid', start_color='F2F2F2', end_color='F2F2F2')
+    for col, text in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=text)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center')
+    return 2
+
+
+def generate_excel_statement(username, profile, repos, events, output_dir=None):
+    """Generate an Excel (.xlsx) account statement for *username*.
+
+    Creates a workbook with three sheets:
+    - Profile      — key/value summary of the user's public profile
+    - Repositories — top repositories sorted by stars
+    - Recent Activity — recent public events
+
+    :param username: GitHub username
+    :param profile:  Profile dict from :func:`get_user_profile`
+    :param repos:    List of repo dicts from :func:`get_user_repos`
+    :param events:   List of event dicts from :func:`get_user_events`
+    :param output_dir: Directory to write the file. Defaults to script directory.
+    :return: Path to the generated .xlsx file.
+    """
+    wb = openpyxl.Workbook()
+
+    # ── Sheet 1: Profile ────────────────────────────────────────────────────
+    ws_profile = wb.active
+    ws_profile.title = 'Profile'
+    generated_at = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+    profile_rows = [
+        ('Username', username),
+        ('Name', profile.get('name') or ''),
+        ('Bio', profile.get('bio') or ''),
+        ('Followers', profile.get('followers', 0)),
+        ('Following', profile.get('following', 0)),
+        ('Public Repos', profile.get('public_repos', 0)),
+        ('Location', profile.get('location') or ''),
+        ('Company', profile.get('company') or ''),
+        ('Profile URL', profile.get('html_url', '')),
+        ('Generated At', generated_at),
+    ]
+    header_font = Font(bold=True)
+    for row_idx, (key, value) in enumerate(profile_rows, start=1):
+        ws_profile.cell(row=row_idx, column=1, value=key).font = header_font
+        ws_profile.cell(row=row_idx, column=2, value=value)
+    ws_profile.column_dimensions['A'].width = 18
+    ws_profile.column_dimensions['B'].width = 50
+
+    # ── Sheet 2: Repositories ───────────────────────────────────────────────
+    ws_repos = wb.create_sheet('Repositories')
+    repo_headers = ['Repository', 'URL', 'Description', 'Language', 'Stars', 'Forks', 'Updated']
+    next_row = _xl_header_row(ws_repos, repo_headers)
+    for repo in repos:
+        ws_repos.cell(row=next_row, column=1, value=repo.get('name', ''))
+        ws_repos.cell(row=next_row, column=2, value=repo.get('html_url', ''))
+        ws_repos.cell(row=next_row, column=3, value=repo.get('description') or '')
+        ws_repos.cell(row=next_row, column=4, value=repo.get('language') or '')
+        ws_repos.cell(row=next_row, column=5, value=repo.get('stargazers_count', 0))
+        ws_repos.cell(row=next_row, column=6, value=repo.get('forks_count', 0))
+        ws_repos.cell(row=next_row, column=7, value=repo.get('updated_at', '')[:10])
+        next_row += 1
+    for col, width in zip('ABCDEFG', [25, 45, 50, 15, 8, 8, 12]):
+        ws_repos.column_dimensions[col].width = width
+
+    # ── Sheet 3: Recent Activity ────────────────────────────────────────────
+    ws_events = wb.create_sheet('Recent Activity')
+    event_headers = ['Date', 'Event Type', 'Repository', 'Repository URL']
+    next_row = _xl_header_row(ws_events, event_headers)
+    for event in events:
+        created_at = event.get('created_at', '')[:19].replace('T', ' ')
+        event_type = event.get('type', '')
+        repo_name = event.get('repo', {}).get('name', '')
+        repo_url = 'https://github.com/' + repo_name if repo_name else ''
+        ws_events.cell(row=next_row, column=1, value=created_at)
+        ws_events.cell(row=next_row, column=2, value=event_type)
+        ws_events.cell(row=next_row, column=3, value=repo_name)
+        ws_events.cell(row=next_row, column=4, value=repo_url)
+        next_row += 1
+    for col, width in zip('ABCD', [20, 25, 45, 50]):
+        ws_events.column_dimensions[col].width = width
+
+    if output_dir is None:
+        output_dir = os.path.dirname(os.path.abspath(__file__))
+
+    output_path = os.path.join(output_dir, 'statement_{}.xlsx'.format(username))
+    wb.save(output_path)
+    print('Excel statement saved to: {}'.format(output_path))
     return output_path
+
+
+def export_to_icloud(source_path):
+    """Copy *source_path* to the iCloud Drive 'Ahleia Reports' folder.
+
+    Does nothing (with a warning) when not running on macOS or when iCloud
+    Drive is not available on the current machine.
+    """
+    if platform.system() != 'Darwin':
+        logger.warning('iCloud export is only supported on macOS. Skipping.')
+        return
+
+    icloud_drive = Path.home() / 'Library' / 'Mobile Documents' / 'com~apple~CloudDocs'
+    if not icloud_drive.exists():
+        logger.warning('iCloud Drive not found at %s. Skipping iCloud export.', icloud_drive)
+        return
+
+    destination = icloud_drive / 'Ahleia Reports' / Path(source_path).name
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(source_path, destination)
+    logger.info('iCloud export saved to: %s', destination)
+    print('iCloud export saved to: {}'.format(destination))
 
 
 def main():
@@ -295,12 +418,32 @@ def main():
     parser.add_argument(
         '--output-dir',
         default=None,
-        help='Directory to write the HTML statement files (default: script directory).'
+        help='Directory to write the statement files (default: script directory).'
+    )
+    parser.add_argument(
+        '--excel',
+        action='store_true',
+        help='Also generate an Excel (.xlsx) spreadsheet alongside the HTML report.'
+    )
+    parser.add_argument(
+        '--icloud',
+        action='store_true',
+        help='Copy the generated file(s) to iCloud Drive (~/Library/Mobile Documents/'
+             'com~apple~CloudDocs/Ahleia Reports/).'
     )
     args = parser.parse_args()
 
     for username in args.usernames:
-        generate_statement(username, output_dir=args.output_dir)
+        html_path, profile, repos, events = generate_statement(username, output_dir=args.output_dir)
+        if html_path is None:
+            continue
+        if args.excel:
+            xl_path = generate_excel_statement(
+                username, profile, repos, events, output_dir=args.output_dir)
+            if args.icloud and xl_path:
+                export_to_icloud(xl_path)
+        if args.icloud and html_path:
+            export_to_icloud(html_path)
 
 
 if __name__ == '__main__':

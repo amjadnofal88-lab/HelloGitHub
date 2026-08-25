@@ -7,7 +7,7 @@
 - 公开仓库列表（按 Star 数量降序，默认展示前 10 名）
 - 最近公开活动事件（默认展示最近 20 条）
 
-报告以 HTML 文件形式保存，支持同时为主账户和备用账户生成报告。
+报告支持 HTML 和 Excel（.xlsx）两种格式，支持同时为主账户和备用账户生成报告。
 
 ## 运行步骤
 
@@ -40,13 +40,33 @@
    python account_statement.py <username> --output-dir /path/to/output
    ```
 
+   导出到 iCloud Drive（仅 macOS）：
+   ```bash
+   python account_statement.py <username> --icloud
+   ```
+   文件将复制到 `~/Library/Mobile Documents/com~apple~CloudDocs/Ahleia Reports/`。
+
+   同时生成 Excel 电子表格（.xlsx）：
+   ```bash
+   python account_statement.py <username> --excel
+   ```
+   Excel 文件包含三个工作表：**Profile**（用户信息）、**Repositories**（仓库列表）、**Recent Activity**（近期活动）。
+
+   组合使用（生成 HTML + Excel，并同步到 iCloud）：
+   ```bash
+   python account_statement.py <username> --excel --icloud
+   ```
+
    示例：
    ```bash
    python account_statement.py torvalds gvanrossum --output-dir /tmp/statements
+   python account_statement.py torvalds --excel
+   python account_statement.py torvalds --excel --icloud
    ```
 
-4. 生成的 HTML 文件保存在脚本所在目录（或 `--output-dir` 指定的目录），文件名格式为：
-   `statement_<username>.html`
+4. 生成的文件保存在脚本所在目录（或 `--output-dir` 指定的目录），文件名格式为：
+   - HTML：`statement_<username>.html`
+   - Excel：`statement_<username>.xlsx`
 
 ## 参数说明
 
@@ -54,6 +74,8 @@
 |------|------|
 | `usernames` | 一个或多个 GitHub 用户名（空格分隔） |
 | `--output-dir` | 输出目录（可选，默认为脚本所在目录） |
+| `--excel` | 额外生成 Excel（.xlsx）电子表格，包含 Profile、Repositories、Recent Activity 三个工作表 |
+| `--icloud` | 将生成的文件额外复制到 iCloud Drive 的 `Ahleia Reports` 文件夹（仅 macOS） |
 
 ## 配置项
 
