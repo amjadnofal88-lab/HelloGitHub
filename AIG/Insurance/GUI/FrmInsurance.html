@@ -588,7 +588,19 @@
         }
 
         function isValidEndpoint(path) {
-            return /^\/[a-zA-Z0-9/._-]+$/.test(path);
+            if (typeof path !== 'string') return false;
+            var trimmed = path.trim();
+            if (!trimmed || trimmed.charAt(0) !== '/') return false;
+            try {
+                trimmed = decodeURIComponent(trimmed);
+            } catch (error) {
+                return false;
+            }
+            if (!trimmed || trimmed.charAt(0) !== '/') return false;
+            if (trimmed.includes('..') || trimmed.includes('//') || trimmed.includes('?') || trimmed.includes('#')) {
+                return false;
+            }
+            return /^\/[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/.test(trimmed);
         }
 
         function sendToOpenAI() {
