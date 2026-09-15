@@ -27,6 +27,12 @@ def test_deduplicate_records_groups_similar_entries():
     assert any(len(group) == 2 for group in groups)
 
 
+def test_same_email_is_treated_as_duplicate_even_without_phone_match():
+    left = {"name": "Samir Ali", "email": "samir@example.com"}
+    right = {"name": "Samir A.", "email": "samir@example.com"}
+    assert is_duplicate(left, right) is True
+
+
 def test_find_duplicates_requires_multiple_records():
     records = [
         {"name": "Samir", "phone": "966500000003"},

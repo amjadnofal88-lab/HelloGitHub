@@ -93,12 +93,16 @@ def calculate_match_score(record_a: Mapping[str, Any], record_b: Mapping[str, An
     email_match = email_similarity(record_a.get("email"), record_b.get("email"))
     id_match = id_similarity(record_a.get("id") or record_a.get("id_no") or record_a.get("customer_id"), record_b.get("id") or record_b.get("id_no") or record_b.get("customer_id"))
 
+    if email_match and (phone_match or id_match or name_match >= 0.5):
+        return 0.95
     if phone_match and email_match:
         return 0.95
     if phone_match and id_match:
         return 0.92
     if email_match and name_match >= 0.5:
         return 0.9
+    if email_match:
+        return 0.88
     if id_match and name_match >= 0.5:
         return 0.9
 
