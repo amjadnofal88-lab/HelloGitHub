@@ -91,8 +91,29 @@ class UnifiedAdminTestCase(unittest.TestCase):
 
         self.client.post(
             "/insurance/installments",
-            json={"customer_id": customer_id, "reference_id": policy_id, "amount": 200, "due_date": "2026-06-15"},
+            json={
+                "customer_id": customer_id,
+                "reference_id": policy_id,
+                "amount": 200,
+                "due_date": "2026-06-15",
+                "provider_name": "stripe",
+                "provider_transaction_id": "tr_ins_001",
+                "idempotency_key": "ins:inst:001",
+                "provider_status": "submitted",
+                "submitted_at": "2026-06-14T10:00:00Z",
+                "settled_at": "2026-06-16T12:30:00Z",
+                "provider_response_reference": "resp_ins_001",
+            },
         )
+        insurance_installments = self.client.get("/insurance/installments", headers={"Accept": "application/json"})
+        insurance_installment = insurance_installments.get_json()[0]
+        self.assertEqual(insurance_installment["provider_name"], "stripe")
+        self.assertEqual(insurance_installment["provider_transaction_id"], "tr_ins_001")
+        self.assertEqual(insurance_installment["idempotency_key"], "ins:inst:001")
+        self.assertEqual(insurance_installment["provider_status"], "submitted")
+        self.assertEqual(insurance_installment["submitted_at"], "2026-06-14T10:00:00")
+        self.assertEqual(insurance_installment["settled_at"], "2026-06-16T12:30:00")
+        self.assertEqual(insurance_installment["provider_response_reference"], "resp_ins_001")
 
         self.client.post(
             "/vip/cards",
@@ -103,8 +124,29 @@ class UnifiedAdminTestCase(unittest.TestCase):
 
         self.client.post(
             "/vip/installments",
-            json={"customer_id": customer_id, "reference_id": card_id, "amount": 80, "due_date": "2026-06-20"},
+            json={
+                "customer_id": customer_id,
+                "reference_id": card_id,
+                "amount": 80,
+                "due_date": "2026-06-20",
+                "provider_name": "stripe",
+                "provider_transaction_id": "tr_vip_001",
+                "idempotency_key": "vip:inst:001",
+                "provider_status": "settled",
+                "submitted_at": "2026-06-18T09:15:00Z",
+                "settled_at": "2026-06-20T11:45:00Z",
+                "provider_response_reference": "resp_vip_001",
+            },
         )
+        vip_installments = self.client.get("/vip/installments", headers={"Accept": "application/json"})
+        vip_installment = vip_installments.get_json()[0]
+        self.assertEqual(vip_installment["provider_name"], "stripe")
+        self.assertEqual(vip_installment["provider_transaction_id"], "tr_vip_001")
+        self.assertEqual(vip_installment["idempotency_key"], "vip:inst:001")
+        self.assertEqual(vip_installment["provider_status"], "settled")
+        self.assertEqual(vip_installment["submitted_at"], "2026-06-18T09:15:00")
+        self.assertEqual(vip_installment["settled_at"], "2026-06-20T11:45:00")
+        self.assertEqual(vip_installment["provider_response_reference"], "resp_vip_001")
 
         ins_report = self.client.get("/insurance/api/reports")
         vip_report = self.client.get("/vip/api/reports")
@@ -160,6 +202,18 @@ class UnifiedAdminTestCase(unittest.TestCase):
             json={"customer_id": 1, "reference_id": 1, "amount": "bad", "due_date": "2026/06/01"},
         )
         self.assertEqual(invalid_vip_installment.status_code, 400)
+
+        invalid_provider_datetime = self.client.post(
+            "/insurance/installments",
+            json={
+                "customer_id": 1,
+                "reference_id": 1,
+                "amount": 10,
+                "due_date": "2026-06-01",
+                "submitted_at": "not-a-datetime",
+            },
+        )
+        self.assertEqual(invalid_provider_datetime.status_code, 400)
 
     def test_bootstrap_admin_disabled_in_production(self):
         with patch.dict("os.environ", {"SECRET_KEY": "production-secret"}, clear=False):

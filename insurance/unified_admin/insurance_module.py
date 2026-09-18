@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, abort, g, jsonify, render_template, request
 from sqlalchemy.exc import IntegrityError
@@ -55,6 +55,19 @@ def _parse_due_date(payload):
         return datetime.strptime(due_date, "%Y-%m-%d").date()
     except ValueError as exc:
         raise ValidationError("due_date must be YYYY-MM-DD") from exc
+
+
+def _parse_optional_datetime(payload, key):
+    raw_value = payload.get(key)
+    if raw_value in (None, ""):
+        return None
+    try:
+        value = datetime.fromisoformat(str(raw_value).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValidationError(f"{key} must be ISO-8601 datetime") from exc
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value
 
 
 @insurance_bp.route("/customers", methods=["GET", "POST"])
@@ -144,6 +157,8 @@ def installments():
             reference_id = _parse_int(payload, "reference_id")
             amount = _parse_float(payload, "amount")
             due_date = _parse_due_date(payload)
+            submitted_at = _parse_optional_datetime(payload, "submitted_at")
+            settled_at = _parse_optional_datetime(payload, "settled_at")
         except ValidationError:
             return _bad_request("invalid installment payload")
         installment = Installment(
@@ -154,6 +169,13 @@ def installments():
             amount=amount,
             due_date=due_date,
             status=payload.get("status", "pending"),
+            provider_name=(payload.get("provider_name") or "").strip() or None,
+            provider_transaction_id=(payload.get("provider_transaction_id") or "").strip() or None,
+            idempotency_key=(payload.get("idempotency_key") or "").strip() or None,
+            provider_status=(payload.get("provider_status") or "").strip() or None,
+            submitted_at=submitted_at,
+            settled_at=settled_at,
+            provider_response_reference=(payload.get("provider_response_reference") or "").strip() or None,
         )
         db.session.add(installment)
         try:
@@ -173,6 +195,13 @@ def installments():
                     "amount": i.amount,
                     "due_date": i.due_date.isoformat(),
                     "status": i.status,
+                    "provider_name": i.provider_name,
+                    "provider_transaction_id": i.provider_transaction_id,
+                    "idempotency_key": i.idempotency_key,
+                    "provider_status": i.provider_status,
+                    "submitted_at": i.submitted_at.isoformat() if i.submitted_at else None,
+                    "settled_at": i.settled_at.isoformat() if i.settled_at else None,
+                    "provider_response_reference": i.provider_response_reference,
                 }
                 for i in rows
             ]
