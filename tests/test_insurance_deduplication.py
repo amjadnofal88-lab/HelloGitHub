@@ -33,6 +33,12 @@ def test_same_email_is_treated_as_duplicate_even_without_phone_match():
     assert is_duplicate(left, right) is True
 
 
+def test_same_agent_or_policy_is_treated_as_duplicate():
+    left = {"agent": "AGT-17", "policy_no": "POL-1001", "name": "Ali Hassan", "email": "ali1@example.com"}
+    right = {"agent": "AGT-17", "policy_no": "POL-1001", "name": "Ali H.", "email": "ali2@example.com"}
+    assert is_duplicate(left, right) is True
+
+
 def test_find_duplicates_requires_multiple_records():
     records = [
         {"name": "Samir", "phone": "966500000003"},

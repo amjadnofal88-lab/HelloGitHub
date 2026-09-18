@@ -83,6 +83,17 @@ def id_similarity(a: Any, b: Any) -> float:
     return 1.0 if left == right else 0.0
 
 
+def _shared_identifier(record_a: Mapping[str, Any], record_b: Mapping[str, Any], *field_names: str) -> bool:
+    for field in field_names:
+        left = record_a.get(field)
+        right = record_b.get(field)
+        if left is None or right is None:
+            continue
+        if normalize_id(left) and normalize_id(left) == normalize_id(right):
+            return True
+    return False
+
+
 def calculate_match_score(record_a: Mapping[str, Any], record_b: Mapping[str, Any]) -> float:
     """Score likely duplicate matches from 0.0 to 1.0."""
     record_a = dict(record_a)
@@ -92,6 +103,13 @@ def calculate_match_score(record_a: Mapping[str, Any], record_b: Mapping[str, An
     phone_match = phone_similarity(record_a.get("phone") or record_a.get("mobile"), record_b.get("phone") or record_b.get("mobile"))
     email_match = email_similarity(record_a.get("email"), record_b.get("email"))
     id_match = id_similarity(record_a.get("id") or record_a.get("id_no") or record_a.get("customer_id"), record_b.get("id") or record_b.get("id_no") or record_b.get("customer_id"))
+    same_agent = _shared_identifier(record_a, record_b, "agent", "agent_id", "agent_name", "broker", "broker_name", "sales_agent")
+    same_policy = _shared_identifier(record_a, record_b, "policy_no", "policy_number", "policy_id", "document_no", "document_number", "doc_no", "document_id")
+
+    if same_policy and same_agent:
+        return 0.99
+    if same_policy or same_agent:
+        return 0.9
 
     if email_match and (phone_match or id_match or name_match >= 0.5):
         return 0.95
