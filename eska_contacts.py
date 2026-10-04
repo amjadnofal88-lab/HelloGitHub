@@ -145,6 +145,42 @@ def login(page, user, password):
     logger.info("تم الدخول.")
 
 
+def change_password(page, old_password, new_password):
+    """Open the password-change page, fill the required fields, and save the new password."""
+    link = page.get_by_role("link", name=re.compile("change password|تغيير كلمة المرور|password", re.I)).first
+    if not link.count():
+        logger.error("لم يُعثر على رابط تغيير كلمة المرور.")
+        return False
+
+    link.click()
+    page.wait_for_load_state("networkidle", timeout=NAV_TIMEOUT)
+
+    fields = {
+        ("Current Password", "Old Password", "كلمة المرور الحالية"): old_password,
+        ("New Password", "كلمة المرور الجديدة"): new_password,
+        ("Confirm Password", "Confirm New Password", "تأكيد كلمة المرور"): new_password,
+    }
+
+    for labels, value in fields.items():
+        filled = False
+        for label in labels:
+            loc = field_by_label(page, label)
+            if loc and loc.count():
+                loc.fill("")
+                loc.type(str(value), delay=40)
+                filled = True
+                break
+        if not filled:
+            logger.error("لم يُعثر على الحقل: %s", labels[0])
+            return False
+
+    save_btn = page.get_by_role("button", name=re.compile("save|change|submit|حفظ|تغيير", re.I)).first
+    if save_btn.count():
+        save_btn.click()
+        page.wait_for_load_state("networkidle", timeout=NAV_TIMEOUT)
+    return True
+
+
 def search(
     page,
     *,
@@ -346,12 +382,19 @@ def main():
     parser.add_argument("--out", default="contacts.xlsx")
     parser.add_argument("--no-headless", action="store_true")
     parser.add_argument("--resume", action="store_true", help="استئناف من آخر نقطة توقف")
+    parser.add_argument("--change-password", action="store_true", help="تغيير كلمة المرور بعد تسجيل الدخول")
+    parser.add_argument("--old-password", help="كلمة المرور الحالية (اختياري إذا كانت ESKA_PASS موجودة)")
+    parser.add_argument("--new-password", help="كلمة المرور الجديدة (اختياري إذا كانت ESKA_NEW_PASS موجودة)")
     args = parser.parse_args()
 
     user = os.environ.get("ESKA_USER")
-    password = os.environ.get("ESKA_PASS")
+    password = os.environ.get("ESKA_PASS") or args.old_password
     if not password:
         sys.exit("ضع كلمة المرور في متغير البيئة ESKA_PASS قبل التشغيل.")
+    if args.change_password and not args.new_password and not os.environ.get("ESKA_NEW_PASS"):
+        import getpass
+        args.new_password = getpass.getpass("كلمة المرور الجديدة: ")
+    new_password = args.new_password or os.environ.get("ESKA_NEW_PASS")
 
     has_filter = bool(args.date_from or args.date_to or args.policies_file or args.policy_no or args.plate_no or args.customer_id or args.vehicle_make or args.vehicle_type or args.sequence_no or args.posting_status)
     if not has_filter:
@@ -374,6 +417,17 @@ def main():
 
         try:
             login(page, user or "", password)
+
+            if args.change_password:
+                if not new_password:
+                    logger.error("لم تُعطَ كلمة مرور جديدة. استخدم --new-password أو ESKA_NEW_PASS.")
+                    raise SystemExit(1)
+                ok = change_password(page, password, new_password)
+                if not ok:
+                    logger.error("فشل تغيير كلمة المرور.")
+                    raise SystemExit(1)
+                logger.info("تمت معالجة تغيير كلمة المرور بنجاح.")
+                return
 
             if args.policies_file:
                 policies = [
