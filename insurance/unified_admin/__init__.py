@@ -5,8 +5,11 @@ import secrets
 from flask import Flask, g
 from werkzeug.security import generate_password_hash
 
+from .aig_module import aig_bp
+from .ai_module import ai_bp
 from .auth import auth_bp
 from .auth_helpers import load_current_user
+from .claims_module import claims_bp
 from .config import CONFIG_MAP
 from .dashboard import dashboard_bp
 from .extensions import db
@@ -59,7 +62,10 @@ def create_app(environment=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(insurance_bp)
+    app.register_blueprint(claims_bp)
     app.register_blueprint(vip_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(ai_bp)
+    app.register_blueprint(aig_bp)
 
     return app

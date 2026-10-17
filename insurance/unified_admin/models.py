@@ -24,6 +24,8 @@ class Customer(db.Model):
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone = db.Column(db.String(40))
+    dob = db.Column(db.Date)
+    address = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
 
@@ -31,10 +33,32 @@ class Policy(db.Model):
     __tablename__ = "policies"
 
     id = db.Column(db.Integer, primary_key=True)
-    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False)
+    # Nullable so holder-name-centric policies (from the AIG UI) can be stored
+    # without first resolving a Customer row.
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
+    holder_name = db.Column(db.String(120))
     policy_number = db.Column(db.String(40), unique=True, nullable=False)
+    policy_type = db.Column(db.String(40))
+    effective_date = db.Column(db.Date)
+    expiry_date = db.Column(db.Date)
     status = db.Column(db.String(20), default="active", nullable=False)
     premium_amount = db.Column(db.Float, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+
+
+class Claim(db.Model):
+    __tablename__ = "claims"
+
+    id = db.Column(db.Integer, primary_key=True)
+    claim_number = db.Column(db.String(40), unique=True, nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=True)
+    holder_name = db.Column(db.String(120))
+    policy_number = db.Column(db.String(40))
+    date_filed = db.Column(db.Date)
+    amount = db.Column(db.Float, nullable=False, default=0)
+    description = db.Column(db.Text)
+    # Workflow: pending -> approved|rejected ; approved -> paid
+    status = db.Column(db.String(20), default="pending", nullable=False)
     created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
 

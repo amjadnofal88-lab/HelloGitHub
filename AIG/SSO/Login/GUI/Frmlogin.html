@@ -130,6 +130,7 @@
                 <span class="error-message" id="passwordError" role="alert" aria-live="polite">Please enter your password.</span>
             </div>
             <button type="submit" class="btn-login">Sign In</button>
+            <span class="error-message" id="authError" role="alert" aria-live="polite" style="display:none; text-align:center; margin-top:12px;">Invalid username or password.</span>
         </form>
         <div class="form-footer">
             &copy; AIG &mdash; Secure SSO Login
@@ -137,30 +138,46 @@
     </div>
 
     <script>
-        function handleLogin(event) {
+        // Dashboard served by Flask (aig_module.py), relative to this login page's URL.
+        var DASHBOARD_URL = '../../../Insurance/GUI/FrmInsurance.html';
+
+        async function handleLogin(event) {
             event.preventDefault();
 
             var username = document.getElementById('username').value.trim();
             var password = document.getElementById('password').value.trim();
             var usernameError = document.getElementById('usernameError');
             var passwordError = document.getElementById('passwordError');
+            var authError = document.getElementById('authError');
             var valid = true;
 
             usernameError.style.display = 'none';
             passwordError.style.display = 'none';
+            authError.style.display = 'none';
 
-            if (!username) {
-                usernameError.style.display = 'block';
-                valid = false;
-            }
+            if (!username) { usernameError.style.display = 'block'; valid = false; }
+            if (!password) { passwordError.style.display = 'block'; valid = false; }
+            if (!valid) return;
 
-            if (!password) {
-                passwordError.style.display = 'block';
-                valid = false;
-            }
-
-            if (valid) {
-                document.getElementById('loginForm').submit();
+            // POST credentials to the Flask auth endpoint as form data. A successful
+            // login returns a 302 redirect (opaque under redirect:'manual'); a failure
+            // re-renders the login page with HTTP 200.
+            try {
+                var body = new URLSearchParams({ username: username, password: password });
+                var resp = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString(),
+                    redirect: 'manual'
+                });
+                if (resp.type === 'opaqueredirect' || resp.status === 0 || (resp.status >= 300 && resp.status < 400)) {
+                    window.location.href = DASHBOARD_URL;
+                } else {
+                    authError.style.display = 'block';
+                }
+            } catch (err) {
+                authError.textContent = 'Login request failed: ' + err;
+                authError.style.display = 'block';
             }
         }
     </script>

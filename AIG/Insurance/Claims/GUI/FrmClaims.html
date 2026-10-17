@@ -266,22 +266,47 @@
     </div>
 
     <script>
-        var claims = [
-            { no: 'CLM-2024-0101', holder: 'John Smith',     policy: 'POL-2024-0001', filed: '2024-05-10', amount: 4500,  status: 'Pending',  desc: 'Rear-end collision on Highway 101.' },
-            { no: 'CLM-2024-0102', holder: 'Mary Johnson',   policy: 'POL-2024-0002', filed: '2024-05-18', amount: 12300, status: 'Approved', desc: 'Water damage from burst pipe in kitchen.' },
-            { no: 'CLM-2024-0103', holder: 'Linda Brown',    policy: 'POL-2023-0088', filed: '2024-04-02', amount: 800,   status: 'Pending',  desc: 'Emergency room visit for fracture.' },
-            { no: 'CLM-2024-0104', holder: 'Michael Wilson', policy: 'POL-2024-0004', filed: '2024-05-22', amount: 22000, status: 'Pending',  desc: 'Warehouse equipment damage due to fire.' },
-            { no: 'CLM-2024-0105', holder: 'Sarah Miller',   policy: 'POL-2024-0005', filed: '2024-03-15', amount: 3100,  status: 'Paid',     desc: 'Windshield replacement and minor bodywork.' },
-            { no: 'CLM-2024-0106', holder: 'David Lee',      policy: 'POL-2024-0006', filed: '2024-04-28', amount: 6700,  status: 'Rejected', desc: 'Pre-existing damage claim; not covered.' }
-        ];
-
-        var filtered = claims.slice();
+        // Claims are loaded live from the Flask backend (claims_module).
+        var API = '/insurance/claims';
+        var claims = [];
+        var filtered = [];
         var currentPage = 1;
         var pageSize = 5;
-        var nextClaimNum = 107;
         var detailIdx = -1;
 
         var statusBadge = { Pending: 'badge-pending', Approved: 'badge-approved', Paid: 'badge-paid', Rejected: 'badge-rejected' };
+
+        function titleCase(s) {
+            s = (s || '').toString();
+            return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+        }
+
+        function fromApi(c) {
+            return {
+                no: c.claim_number,
+                holder: c.holder_name || '',
+                policy: c.policy_number || '',
+                filed: c.date_filed || '',
+                amount: c.amount || 0,
+                status: titleCase(c.status),
+                desc: c.description || ''
+            };
+        }
+
+        async function loadClaims() {
+            try {
+                var resp = await fetch(API, { headers: { 'Accept': 'application/json' } });
+                if (resp.status === 401 || resp.status === 302 || resp.redirected) {
+                    window.location.href = '../../../SSO/Login/GUI/Frmlogin.html';
+                    return;
+                }
+                var data = await resp.json();
+                claims = data.map(fromApi);
+            } catch (err) {
+                claims = [];
+            }
+            applyFilters();
+        }
 
         function escapeHtml(text) {
             var d = document.createElement('div');
@@ -359,7 +384,7 @@
             document.getElementById('claimModal').classList.remove('open');
         }
 
-        function saveClaim() {
+        async function saveClaim() {
             var holder = document.getElementById('claimHolder').value.trim();
             var policy = document.getElementById('claimPolicyNo').value.trim();
             var date   = document.getElementById('claimDate').value;
@@ -377,11 +402,27 @@
 
             if (!valid) return;
 
-            var seq = String(nextClaimNum++).padStart(4, '0');
-            var year = new Date(date).getFullYear() || new Date().getFullYear();
-            claims.unshift({ no: 'CLM-' + year + '-' + seq, holder: holder, policy: policy, filed: date, amount: amount, status: 'Pending', desc: desc });
+            var body = {
+                holder_name: holder,
+                policy_number: policy,
+                date_filed: date,
+                amount: amount,
+                description: desc
+            };
+            try {
+                var resp = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (resp.status === 403) { alert('Only admin users can file claims.'); return; }
+                if (!resp.ok) { alert('Request failed (HTTP ' + resp.status + ').'); return; }
+            } catch (err) {
+                alert('Request failed: ' + err);
+                return;
+            }
             closeNewClaimModal();
-            applyFilters();
+            loadClaims();
         }
 
         /* --- Detail Modal --- */
@@ -399,7 +440,8 @@
                 '<div class="detail-label">Status</div><div class="detail-value"><span class="badge ' + cls + '">' + escapeHtml(c.status) + '</span></div>' +
                 '<div class="detail-label">Description</div><div class="detail-value">' + escapeHtml(c.desc) + '</div>';
 
-            var footer = '<button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>';
+            var footer = '<button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>' +
+                         ' <button class="btn btn-secondary" onclick="triageClaim(' + idx + ')">AI Triage</button>';
             if (c.status === 'Pending') {
                 footer += ' <button class="btn btn-success" onclick="updateStatus(' + idx + ',\'Approved\')">Approve</button>' +
                           ' <button class="btn btn-danger"  onclick="updateStatus(' + idx + ',\'Rejected\')">Reject</button>';
@@ -410,19 +452,50 @@
             document.getElementById('detailModal').classList.add('open');
         }
 
+        async function triageClaim(idx) {
+            var c = filtered[idx];
+            if (!c) return;
+            try {
+                var resp = await fetch('/ai/claims-triage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ amount: c.amount, description: c.desc, policy_number: c.policy, holder_name: c.holder })
+                });
+                var data = await resp.json();
+                alert('AI recommendation: ' + (data.recommendation || 'n/a').toUpperCase() +
+                      '\nConfidence: ' + (data.confidence != null ? Math.round(data.confidence * 100) + '%' : 'n/a') +
+                      '\nReasons:\n- ' + (data.reasons || []).join('\n- '));
+            } catch (err) {
+                alert('AI request failed: ' + err);
+            }
+        }
+
         function closeDetailModal() {
             document.getElementById('detailModal').classList.remove('open');
             detailIdx = -1;
         }
 
-        function updateStatus(idx, newStatus) {
+        async function updateStatus(idx, newStatus) {
             var c = filtered[idx];
             if (!c) return;
-            for (var i = 0; i < claims.length; i++) {
-                if (claims[i].no === c.no) { claims[i].status = newStatus; break; }
+            try {
+                var resp = await fetch(API + '/' + encodeURIComponent(c.no) + '/status', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ status: newStatus.toLowerCase() })
+                });
+                if (resp.status === 403) { alert('Only admin users can change claim status.'); return; }
+                if (!resp.ok) {
+                    var e = await resp.json().catch(function () { return {}; });
+                    alert(e.error || ('Request failed (HTTP ' + resp.status + ').'));
+                    return;
+                }
+            } catch (err) {
+                alert('Request failed: ' + err);
+                return;
             }
             closeDetailModal();
-            applyFilters();
+            loadClaims();
         }
 
         /* Close on overlay click or Escape */
@@ -438,7 +511,7 @@
             }
         });
 
-        renderTable();
+        loadClaims();
     </script>
 </body>
 </html>

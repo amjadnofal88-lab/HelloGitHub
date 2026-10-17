@@ -2,3 +2,6 @@ flask>=3.0.0
 flask-sqlalchemy>=3.1.1
 openpyxl>=3.1.5
 psycopg2-binary>=2.9.9
+# AI features. Optional at runtime — when ANTHROPIC_API_KEY is unset the app
+# falls back to deterministic logic and never imports this package.
+anthropic>=0.40

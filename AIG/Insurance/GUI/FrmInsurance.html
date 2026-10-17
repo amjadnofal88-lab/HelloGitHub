@@ -387,92 +387,93 @@
     <div class="footer">&copy; AIG &mdash; Insurance Portal</div>
 
     <script>
-        var samplePolicies = [
-            { no: 'POL-2024-0001', holder: 'John Smith',      type: 'Auto',       effective: '2024-01-15', expiry: '2025-01-14', premium: '$1,200', status: 'Active'  },
-            { no: 'POL-2024-0002', holder: 'Mary Johnson',    type: 'Home',       effective: '2024-02-01', expiry: '2025-01-31', premium: '$2,400', status: 'Active'  },
-            { no: 'POL-2024-0003', holder: 'Robert Davis',    type: 'Life',       effective: '2024-03-10', expiry: '2034-03-09', premium: '$5,000', status: 'Active'  },
-            { no: 'POL-2023-0088', holder: 'Linda Brown',     type: 'Health',     effective: '2023-07-01', expiry: '2024-06-30', premium: '$3,600', status: 'Expired' },
-            { no: 'POL-2024-0004', holder: 'Michael Wilson',  type: 'Commercial', effective: '2024-04-01', expiry: '2025-03-31', premium: '$8,500', status: 'Pending' }
-        ];
-
-        var sampleClaims = [
-            { no: 'CLM-2024-0101', holder: 'John Smith',     policy: 'POL-2024-0001', filed: '2024-05-10', amount: '$4,500',  status: 'Pending'  },
-            { no: 'CLM-2024-0102', holder: 'Mary Johnson',   policy: 'POL-2024-0002', filed: '2024-05-18', amount: '$12,300', status: 'Approved' },
-            { no: 'CLM-2024-0103', holder: 'Linda Brown',    policy: 'POL-2023-0088', filed: '2024-04-02', amount: '$800',    status: 'Pending'  },
-            { no: 'CLM-2024-0104', holder: 'Michael Wilson', policy: 'POL-2024-0004', filed: '2024-05-22', amount: '$22,000', status: 'Pending'  }
-        ];
-
+        // Live dashboard driven by the Flask backend (insurance_module.dashboard_summary).
         var statusBadge = {
-            'Active':   'badge-active',
-            'Pending':  'badge-pending',
-            'Expired':  'badge-expired',
-            'Approved': 'badge-approved'
+            'active':   'badge-active',
+            'pending':  'badge-pending',
+            'expired':  'badge-expired',
+            'approved': 'badge-approved',
+            'paid':     'badge-paid',
+            'rejected': 'badge-rejected'
         };
 
         function escapeHtml(text) {
             var div = document.createElement('div');
-            div.appendChild(document.createTextNode(String(text)));
+            div.appendChild(document.createTextNode(text == null ? '' : String(text)));
             return div.innerHTML;
         }
 
-        function renderPolicies() {
-            var tbody = document.getElementById('recentPoliciesBody');
+        function titleCase(s) {
+            s = (s || '').toString();
+            return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+        }
+
+        function money(n) {
+            var v = Number(n || 0);
+            return '$' + v.toLocaleString(undefined, { maximumFractionDigits: 2 });
+        }
+
+        function badge(status) {
+            var cls = statusBadge[(status || '').toLowerCase()] || '';
+            return '<span class="badge ' + cls + '">' + escapeHtml(titleCase(status)) + '</span>';
+        }
+
+        function renderPolicies(policies) {
             var rows = '';
-            for (var i = 0; i < samplePolicies.length; i++) {
-                var p = samplePolicies[i];
-                var cls = statusBadge[p.status] || '';
+            (policies || []).forEach(function (p) {
                 rows += '<tr>' +
-                    '<td>' + escapeHtml(p.no) + '</td>' +
-                    '<td>' + escapeHtml(p.holder) + '</td>' +
-                    '<td>' + escapeHtml(p.type) + '</td>' +
-                    '<td>' + escapeHtml(p.effective) + '</td>' +
-                    '<td>' + escapeHtml(p.expiry) + '</td>' +
-                    '<td>' + escapeHtml(p.premium) + '</td>' +
-                    '<td><span class="badge ' + cls + '">' + escapeHtml(p.status) + '</span></td>' +
+                    '<td>' + escapeHtml(p.policy_number) + '</td>' +
+                    '<td>' + escapeHtml(p.holder_name) + '</td>' +
+                    '<td>' + escapeHtml(p.policy_type) + '</td>' +
+                    '<td>' + escapeHtml(p.effective_date) + '</td>' +
+                    '<td>' + escapeHtml(p.expiry_date) + '</td>' +
+                    '<td>' + money(p.premium_amount) + '</td>' +
+                    '<td>' + badge(p.status) + '</td>' +
                     '</tr>';
-            }
-            tbody.innerHTML = rows;
+            });
+            document.getElementById('recentPoliciesBody').innerHTML =
+                rows || '<tr><td colspan="7" style="text-align:center;color:#9ca3af;">No policies yet</td></tr>';
         }
 
-        function renderClaims() {
-            var tbody = document.getElementById('recentClaimsBody');
+        function renderClaims(claims) {
             var rows = '';
-            for (var i = 0; i < sampleClaims.length; i++) {
-                var c = sampleClaims[i];
-                var cls = statusBadge[c.status] || '';
+            (claims || []).forEach(function (c) {
                 rows += '<tr>' +
-                    '<td>' + escapeHtml(c.no) + '</td>' +
-                    '<td>' + escapeHtml(c.holder) + '</td>' +
-                    '<td>' + escapeHtml(c.policy) + '</td>' +
-                    '<td>' + escapeHtml(c.filed) + '</td>' +
-                    '<td>' + escapeHtml(c.amount) + '</td>' +
-                    '<td><span class="badge ' + cls + '">' + escapeHtml(c.status) + '</span></td>' +
+                    '<td>' + escapeHtml(c.claim_number) + '</td>' +
+                    '<td>' + escapeHtml(c.holder_name) + '</td>' +
+                    '<td>' + escapeHtml(c.policy_number) + '</td>' +
+                    '<td>' + escapeHtml(c.date_filed) + '</td>' +
+                    '<td>' + money(c.amount) + '</td>' +
+                    '<td>' + badge(c.status) + '</td>' +
                     '</tr>';
+            });
+            document.getElementById('recentClaimsBody').innerHTML =
+                rows || '<tr><td colspan="6" style="text-align:center;color:#9ca3af;">No claims yet</td></tr>';
+        }
+
+        async function loadDashboard() {
+            try {
+                var resp = await fetch('/insurance/api/dashboard-summary', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (resp.status === 401 || resp.status === 302 || resp.redirected) {
+                    window.location.href = '../../SSO/Login/GUI/Frmlogin.html';
+                    return;
+                }
+                var data = await resp.json();
+                document.getElementById('totalPolicies').textContent = data.total_policies || 0;
+                document.getElementById('activePolicies').textContent = data.active_policies || 0;
+                document.getElementById('openClaims').textContent = data.open_claims || 0;
+                document.getElementById('expiringSoon').textContent = data.expiring_soon || 0;
+                renderPolicies(data.recent_policies);
+                renderClaims(data.recent_claims);
+            } catch (err) {
+                renderPolicies([]);
+                renderClaims([]);
             }
-            tbody.innerHTML = rows;
         }
 
-        function renderSummary() {
-            var total   = samplePolicies.length;
-            var active  = samplePolicies.filter(function(p){ return p.status === 'Active';  }).length;
-            var open    = sampleClaims.filter(function(c){ return c.status === 'Pending'; }).length;
-            var now = new Date();
-            var in30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-            var expiring = samplePolicies.filter(function(p){
-                if (p.status !== 'Active') return false;
-                var exp = new Date(p.expiry);
-                return exp >= now && exp <= in30;
-            }).length;
-
-            document.getElementById('totalPolicies').textContent = total;
-            document.getElementById('activePolicies').textContent = active;
-            document.getElementById('openClaims').textContent = open;
-            document.getElementById('expiringSoon').textContent = expiring;
-        }
-
-        renderSummary();
-        renderPolicies();
-        renderClaims();
+        loadDashboard();
     </script>
 </body>
 </html>

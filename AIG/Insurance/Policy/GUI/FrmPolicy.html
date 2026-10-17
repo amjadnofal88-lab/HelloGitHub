@@ -276,29 +276,54 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-secondary" onclick="suggestPremium()">Suggest Premium (AI)</button>
                 <button class="btn btn-primary" onclick="savePolicy()">Save Policy</button>
             </div>
         </div>
     </div>
 
     <script>
-        var policies = [
-            { no: 'POL-2024-0001', holder: 'John Smith',      type: 'Auto',       effective: '2024-01-15', expiry: '2025-01-14', premium: 1200,  status: 'Active'  },
-            { no: 'POL-2024-0002', holder: 'Mary Johnson',    type: 'Home',       effective: '2024-02-01', expiry: '2025-01-31', premium: 2400,  status: 'Active'  },
-            { no: 'POL-2024-0003', holder: 'Robert Davis',    type: 'Life',       effective: '2024-03-10', expiry: '2034-03-09', premium: 5000,  status: 'Active'  },
-            { no: 'POL-2023-0088', holder: 'Linda Brown',     type: 'Health',     effective: '2023-07-01', expiry: '2024-06-30', premium: 3600,  status: 'Expired' },
-            { no: 'POL-2024-0004', holder: 'Michael Wilson',  type: 'Commercial', effective: '2024-04-01', expiry: '2025-03-31', premium: 8500,  status: 'Pending' },
-            { no: 'POL-2024-0005', holder: 'Sarah Miller',    type: 'Auto',       effective: '2024-05-01', expiry: '2025-04-30', premium: 980,   status: 'Active'  },
-            { no: 'POL-2024-0006', holder: 'David Lee',       type: 'Home',       effective: '2024-06-15', expiry: '2025-06-14', premium: 1750,  status: 'Active'  },
-            { no: 'POL-2024-0007', holder: 'Patricia Harris', type: 'Health',     effective: '2024-01-01', expiry: '2024-12-31', premium: 4200,  status: 'Active'  }
-        ];
-
-        var filtered = policies.slice();
+        // Policies are loaded live from the Flask backend (insurance_module.policies).
+        var API = '/insurance/policies';
+        var policies = [];
+        var filtered = [];
         var currentPage = 1;
         var pageSize = 5;
-        var nextPolicyNum = 8;
 
         var statusBadge = { Active: 'badge-active', Pending: 'badge-pending', Expired: 'badge-expired' };
+
+        function titleCase(s) {
+            s = (s || '').toString();
+            return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+        }
+
+        // Map the API record shape to the shape this page's renderer expects.
+        function fromApi(p) {
+            return {
+                no: p.policy_number,
+                holder: p.holder_name || '',
+                type: p.policy_type || '',
+                effective: p.effective_date || '',
+                expiry: p.expiry_date || '',
+                premium: p.premium_amount || 0,
+                status: titleCase(p.status)
+            };
+        }
+
+        async function loadPolicies() {
+            try {
+                var resp = await fetch(API, { headers: { 'Accept': 'application/json' } });
+                if (resp.status === 401 || resp.status === 302 || resp.redirected) {
+                    window.location.href = '../../../SSO/Login/GUI/Frmlogin.html';
+                    return;
+                }
+                var data = await resp.json();
+                policies = data.map(fromApi);
+            } catch (err) {
+                policies = [];
+            }
+            applyFilters();
+        }
 
         function escapeHtml(text) {
             var d = document.createElement('div');
@@ -391,7 +416,7 @@
             document.getElementById('policyModal').classList.remove('open');
         }
 
-        function savePolicy() {
+        async function savePolicy() {
             var holder    = document.getElementById('holderName').value.trim();
             var type      = document.getElementById('policyType').value;
             var effective = document.getElementById('effectiveDate').value;
@@ -413,17 +438,48 @@
 
             if (!valid) return;
 
-            var seq = String(nextPolicyNum++).padStart(4, '0');
-            var year = new Date(effective).getFullYear() || new Date().getFullYear();
-            var newPolicy = {
-                no: 'POL-' + year + '-' + seq,
-                holder: holder, type: type,
-                effective: effective, expiry: expiry,
-                premium: premium, status: status
+            var body = {
+                holder_name: holder,
+                policy_type: type,
+                effective_date: effective,
+                expiry_date: expiry,
+                premium_amount: premium,
+                status: status.toLowerCase()
             };
-            policies.unshift(newPolicy);
+            try {
+                var resp = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (resp.status === 403) { alert('Only admin users can create policies.'); return; }
+                if (!resp.ok) { alert('Request failed (HTTP ' + resp.status + ').'); return; }
+            } catch (err) {
+                alert('Request failed: ' + err);
+                return;
+            }
             closeModal();
-            applyFilters();
+            loadPolicies();
+        }
+
+        async function suggestPremium() {
+            var type = document.getElementById('policyType').value || 'auto';
+            try {
+                var resp = await fetch('/ai/risk-score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ policy_type: type.toLowerCase(), coverage_amount: 50000 })
+                });
+                var data = await resp.json();
+                if (data.suggested_premium != null) {
+                    document.getElementById('premium').value = data.suggested_premium;
+                    alert('AI suggested premium: $' + data.suggested_premium +
+                          '\nRisk score: ' + data.risk_score +
+                          '\n' + (data.rationale || ''));
+                }
+            } catch (err) {
+                alert('AI request failed: ' + err);
+            }
         }
 
         // Close modal on overlay click
@@ -436,7 +492,7 @@
             if (e.key === 'Escape') closeModal();
         });
 
-        renderTable();
+        loadPolicies();
     </script>
 </body>
 </html>

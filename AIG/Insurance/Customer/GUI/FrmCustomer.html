@@ -265,19 +265,36 @@
     </div>
 
     <script>
-        var customers = [
-            { id: 1, name: 'John Smith',      email: 'john.smith@example.com',    phone: '+1 555 010 1001', dob: '1985-03-22', address: '12 Oak Ave, Springfield, IL 62701' },
-            { id: 2, name: 'Mary Johnson',    email: 'mary.johnson@example.com',  phone: '+1 555 010 1002', dob: '1990-07-14', address: '34 Maple St, Chicago, IL 60601'    },
-            { id: 3, name: 'Robert Davis',    email: 'robert.davis@example.com',  phone: '+1 555 010 1003', dob: '1972-11-05', address: '56 Pine Rd, Rockford, IL 61101'   },
-            { id: 4, name: 'Linda Brown',     email: 'linda.brown@example.com',   phone: '+1 555 010 1004', dob: '1988-01-30', address: '78 Cedar Ln, Peoria, IL 61602'    },
-            { id: 5, name: 'Michael Wilson',  email: 'michael.wilson@example.com',phone: '+1 555 010 1005', dob: '1965-09-18', address: '90 Elm Blvd, Aurora, IL 60505'    },
-            { id: 6, name: 'Sarah Miller',    email: 'sarah.miller@example.com',  phone: '+1 555 010 1006', dob: '1993-05-25', address: '11 Birch Dr, Joliet, IL 60432'    },
-            { id: 7, name: 'David Lee',       email: 'david.lee@example.com',     phone: '+1 555 010 1007', dob: '1980-12-03', address: '22 Willow Way, Naperville, IL 60540'},
-            { id: 8, name: 'Patricia Harris', email: 'patricia.harris@example.com',phone: '+1 555 010 1008',dob: '1978-08-17', address: '33 Spruce Ct, Evanston, IL 60201' }
-        ];
+        // Customers are loaded live from the Flask backend (insurance_module.customers).
+        var API = '/insurance/customers';
+        var customers = [];
+        var filtered = [];
 
-        var nextId = 9;
-        var filtered = customers.slice();
+        async function loadCustomers() {
+            try {
+                var resp = await fetch(API, { headers: { 'Accept': 'application/json' } });
+                if (resp.status === 401 || resp.status === 302 || resp.redirected) {
+                    window.location.href = '../../../SSO/Login/GUI/Frmlogin.html';
+                    return;
+                }
+                customers = await resp.json();
+            } catch (err) {
+                customers = [];
+            }
+            applyFilters();
+        }
+
+        function apiError(resp) {
+            if (resp.status === 403) {
+                alert('Only admin users can modify records.');
+                return true;
+            }
+            if (!resp.ok) {
+                alert('Request failed (HTTP ' + resp.status + ').');
+                return true;
+            }
+            return false;
+        }
         var currentPage = 1;
         var pageSize = 5;
         var editingId = null;
@@ -381,7 +398,7 @@
             });
         }
 
-        function saveCustomer() {
+        async function saveCustomer() {
             var name    = document.getElementById('custName').value.trim();
             var email   = document.getElementById('custEmail').value.trim();
             var phone   = document.getElementById('custPhone').value.trim();
@@ -401,17 +418,23 @@
             }
             if (!valid) return;
 
-            if (editingId === null) {
-                customers.push({ id: nextId++, name: name, email: email, phone: phone, dob: dob, address: address });
-            } else {
-                var c = findById(editingId);
-                if (c) {
-                    c.name = name; c.email = email; c.phone = phone; c.dob = dob; c.address = address;
-                }
+            var body = { name: name, email: email, phone: phone, dob: dob, address: address };
+            var url = editingId === null ? API : API + '/' + editingId;
+            var method = editingId === null ? 'POST' : 'PUT';
+            try {
+                var resp = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (apiError(resp)) return;
+            } catch (err) {
+                alert('Request failed: ' + err);
+                return;
             }
 
             closeModal();
-            applyFilters();
+            loadCustomers();
         }
 
         /* ---- Delete ---- */
@@ -428,10 +451,21 @@
             document.getElementById('confirmOverlay').classList.remove('open');
         }
 
-        function confirmDelete() {
-            customers = customers.filter(function(c) { return c.id !== deleteTargetId; });
+        async function confirmDelete() {
+            var id = deleteTargetId;
+            try {
+                var resp = await fetch(API + '/' + id, {
+                    method: 'DELETE',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (apiError(resp)) { closeConfirm(); return; }
+            } catch (err) {
+                alert('Request failed: ' + err);
+                closeConfirm();
+                return;
+            }
             closeConfirm();
-            applyFilters();
+            loadCustomers();
         }
 
         /* ---- Helpers ---- */
@@ -468,7 +502,7 @@
             }
         });
 
-        renderTable();
+        loadCustomers();
     </script>
 </body>
 </html>

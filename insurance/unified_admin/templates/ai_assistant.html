@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>AI Assistant</h2>
+<p>Ask about customers, policies, claims, premiums, or coverage. Works offline with
+reduced capability when no API key is configured.</p>
+
+<div class="card" style="max-width:720px;">
+  <div id="chatLog" style="min-height:160px; max-height:360px; overflow-y:auto; margin-bottom:12px;"></div>
+  <form id="chatForm" style="display:flex; gap:8px;">
+    <input id="chatInput" type="text" placeholder="Type a question..." required
+           style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;">
+    <button class="btn" type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+  const log = document.getElementById('chatLog');
+  const history = [];
+
+  function append(role, text) {
+    const div = document.createElement('div');
+    div.style.margin = '6px 0';
+    div.innerHTML = '<strong>' + (role === 'user' ? 'You' : 'Assistant') + ':</strong> ' +
+      text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  document.getElementById('chatForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    if (!message) return;
+    append('user', message);
+    history.push({ role: 'user', content: message });
+    input.value = '';
+    try {
+      const resp = await fetch('/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ message, history })
+      });
+      const data = await resp.json();
+      const reply = data.reply || data.error || 'No response.';
+      append('assistant', reply);
+      history.push({ role: 'assistant', content: reply });
+    } catch (err) {
+      append('assistant', 'Request failed: ' + err);
+    }
+  });
+</script>
+{% endblock %}

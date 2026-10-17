@@ -9,6 +9,11 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # AI configuration. When ANTHROPIC_API_KEY is unset the AI features fall back
+    # to deterministic logic so the app still runs offline.
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+    AI_MODEL = os.getenv("AI_MODEL", "claude-opus-5-5")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
