@@ -55,9 +55,12 @@ cd insurance
 python webapp.py
 ```
 
-Default bootstrap user is created automatically on first run:
+An `admin` user is created automatically on first run:
 - username: `admin`
-- password: `admin123`
+- password: set `INITIAL_ADMIN_PASSWORD` before the first run to choose it. If that
+  variable is unset, a secure random password is generated and written once to the
+  application log as a `WARNING` — retrieve it from the startup log and rotate it
+  immediately.
 
 ## Configuration
 
