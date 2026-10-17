@@ -178,6 +178,19 @@ class DashboardSummaryTestCase(BaseCase):
         self.assertEqual(data["active_policies"], 1)
         self.assertEqual(data["open_claims"], 1)
 
+    def test_paid_and_pending_totals(self):
+        self._login_admin()
+        self.client.post("/insurance/claims", json={"holder_name": "A", "amount": 500})
+        self.client.post(
+            "/insurance/claims", json={"holder_name": "B", "amount": 1000, "claim_number": "CLM-PAY-1"}
+        )
+        self.client.patch("/insurance/claims/CLM-PAY-1/status", json={"status": "approved"})
+        self.client.patch("/insurance/claims/CLM-PAY-1/status", json={"status": "paid"})
+
+        data = self.client.get("/insurance/api/dashboard-summary").get_json()
+        self.assertEqual(data["pending_total"], 500.0)
+        self.assertEqual(data["paid_total"], 1000.0)
+
 
 class AigRouteTestCase(BaseCase):
     def test_login_page_public(self):

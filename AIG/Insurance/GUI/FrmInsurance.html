@@ -309,6 +309,16 @@
                 <div class="value" id="expiringSoon">0</div>
                 <div class="sub">Within 30 days</div>
             </div>
+            <div class="summary-card green">
+                <div class="label">Paid Claims</div>
+                <div class="value" id="paidTotal">$0</div>
+                <div class="sub">Paid out</div>
+            </div>
+            <div class="summary-card orange">
+                <div class="label">Pending Amount</div>
+                <div class="value" id="pendingTotal">$0</div>
+                <div class="sub">Awaiting decision</div>
+            </div>
         </div>
 
         <!-- Quick Actions -->
@@ -465,6 +475,8 @@
                 document.getElementById('activePolicies').textContent = data.active_policies || 0;
                 document.getElementById('openClaims').textContent = data.open_claims || 0;
                 document.getElementById('expiringSoon').textContent = data.expiring_soon || 0;
+                document.getElementById('paidTotal').textContent = money(data.paid_total);
+                document.getElementById('pendingTotal').textContent = money(data.pending_total);
                 renderPolicies(data.recent_policies);
                 renderClaims(data.recent_claims);
             } catch (err) {

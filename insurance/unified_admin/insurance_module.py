@@ -233,6 +233,14 @@ def dashboard_summary():
         Policy.expiry_date <= soon,
     ).count()
 
+    def _claim_total(status):
+        total = (
+            Claim.query.with_entities(func.coalesce(func.sum(Claim.amount), 0.0))
+            .filter(Claim.status == status)
+            .scalar()
+        )
+        return float(total or 0.0)
+
     recent_policies = Policy.query.order_by(Policy.created_at.desc()).limit(5).all()
     recent_claims = Claim.query.order_by(Claim.created_at.desc()).limit(5).all()
 
@@ -242,6 +250,8 @@ def dashboard_summary():
             "active_policies": active_policies,
             "open_claims": open_claims,
             "expiring_soon": expiring_soon,
+            "paid_total": _claim_total("paid"),
+            "pending_total": _claim_total("pending"),
             "recent_policies": [_serialize_policy(p) for p in recent_policies],
             "recent_claims": [
                 {
